@@ -22,9 +22,29 @@ React 18 single-page chatbot UI built with Vite and CSS Modules. Communicates wi
 
 ## Configuration
 
+### Environment variables
+
+The frontend uses `.env.local` for local environment-specific configuration (gitignored by the `*.local` pattern).
+
+**Required variable:**
+
+- `VITE_DYNATRACE_RUM_URL` — Full URL to your Dynatrace RUM JavaScript tag (injected into `index.html` at build time)
+
+**Setup:**
+
+```bash
+# Copy the example file
+cp .env.example .env.local
+
+# Edit .env.local and replace the placeholder with your actual Dynatrace RUM URL
+# Get your URL from: Dynatrace > Web Applications > Your App > ... > Edit > Setup
+```
+
+`.env.example` is committed to the repo as a template; `.env.local` contains your actual values and stays out of version control.
+
 ### Dev proxy
 
-In development, all `/api/*` requests are proxied to the backend at `http://localhost:8000` by the Vite dev server. No environment variables are needed in the frontend. See `vite.config.js`:
+In development, all `/api/*` requests are proxied to the backend at `http://localhost:8000` by the Vite dev server. See `vite.config.js`:
 
 ```js
 server: {
