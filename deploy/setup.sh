@@ -65,6 +65,7 @@ if [[ ! -f "$INSTALL_DIR/backend/.env" ]]; then
     log "Creating backend .env from example — fill in the real values before starting the service."
     cp "$INSTALL_DIR/backend/.env.example" "$INSTALL_DIR/backend/.env"
     chmod 600 "$INSTALL_DIR/backend/.env"
+    sudo chown www-data:www-data "$INSTALL_DIR/backend/.env"
     echo ""
     echo "  *** Edit $INSTALL_DIR/backend/.env and set:"
     echo "      NVIDIA_API_KEY, DYNATRACE_OTLP_ENDPOINT, DYNATRACE_API_TOKEN"
@@ -123,9 +124,15 @@ python3 -m venv "$INSTALL_DIR/load_gen_venv"
 "$INSTALL_DIR/load_gen_venv/bin/pip" install --quiet -r "$INSTALL_DIR/load_gen/requirements.txt"
 
 if [[ ! -f "$INSTALL_DIR/load_gen/.env" ]]; then
-    log "Creating load_gen .env from example."
+    log "Creating load_gen .env from example — fill in the real values before starting the service."
     cp "$INSTALL_DIR/load_gen/.env.example" "$INSTALL_DIR/load_gen/.env"
     chmod 600 "$INSTALL_DIR/load_gen/.env"
+    sudo chown www-data:www-data "$INSTALL_DIR/load_gen/.env"
+    echo ""
+    echo "  *** Edit $INSTALL_DIR/load_gen/.env and set:"
+    echo "      DYNATRACE_OTLP_ENDPOINT, DYNATRACE_API_TOKEN"
+    echo "      (and LOAD_GEN_CONCURRENCY, LOAD_GEN_PROVIDER if needed)"
+    echo ""
 fi
 
 log "Installing load_gen systemd service..."
