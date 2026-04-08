@@ -1,0 +1,199 @@
+"""
+LangChain integration with NVIDIA NIM.
+
+Session history is kept in memory (dict keyed by session_id).
+Each request is handled by ainvoke(), returning the full response as a string.
+"""
+
+import json as _json
+import logging
+import os
+import time
+
+from opentelemetry import trace as _otel_trace
+
+from dotenv import load_dotenv
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from traceloop.sdk.decorators import task, workflow
+
+load_dotenv()
+
+logger = logging.getLogger("chatbot.llm")
+
+_MODEL = "meta/llama-3.1-8b-instruct"
+
+# ── LLM client initialisation ─────────────────────────────────────────────────
+_nvidia_api_key = os.getenv("NVIDIA_API_KEY")
+_self_hosted_nim_url = os.getenv("SELF_HOSTED_NIM_URL")
+
+_llms: dict[str, ChatNVIDIA] = {}
+if _nvidia_api_key:
+    _llms["nim_api"] = ChatNVIDIA(model=_MODEL, api_key=_nvidia_api_key)
+if _self_hosted_nim_url:
+    _llms["self_hosted"] = ChatNVIDIA(
+        model=_MODEL,
+        base_url=f"{_self_hosted_nim_url.rstrip('/')}/v1",
+        api_key="not-required",
+    )
+
+# In-memory session store: { session_id -> ChatMessageHistory }
+_session_store: dict[str, ChatMessageHistory] = {}
+
+
+def _get_session_history(session_id: str) -> BaseChatMessageHistory:
+    if session_id not in _session_store:
+        _session_store[session_id] = ChatMessageHistory()
+    return _session_store[session_id]
+
+
+def clear_session(session_id: str) -> None:
+    """Remove all message history for a session."""
+    _session_store.pop(session_id, None)
+
+
+def _build_chain(system_prompt: str, provider: str = "nim_api"):
+    """Build a RunnableWithMessageHistory chain for the given system prompt and provider."""
+    llm = _llms.get(provider)
+    if llm is None:
+        if provider == "nim_api":
+            raise RuntimeError("NVIDIA_API_KEY is not set in the environment.")
+        elif provider == "self_hosted":
+            raise RuntimeError("SELF_HOSTED_NIM_URL is not configured.")
+        else:
+            raise ValueError(f"Unknown LLM provider: {provider!r}")
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessage(content=system_prompt),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{input}"),
+        ]
+    )
+
+    chain = prompt | llm
+
+    return RunnableWithMessageHistory(
+        chain,
+        _get_session_history,
+        input_messages_key="input",
+        history_messages_key="history",
+    )
+
+
+@workflow(name="chat_response")
+async def get_response(
+    session_id: str,
+    message: str,
+    system_prompt: str,
+    provider: str = "nim_api",
+) -> str:
+    """Invoke the chain and return the assistant reply as a plain string."""
+    _otel_trace.get_current_span().set_attribute("session.id", session_id)
+    logger.info(
+        "LLM request  | session=%s  model=%s  provider=%s  message_len=%d",
+        session_id,
+        _MODEL,
+        provider,
+        len(message),
+    )
+
+    chain = _build_chain(system_prompt, provider)
+    config = {"configurable": {"session_id": session_id}}
+    start = time.perf_counter()
+
+    try:
+        result = await chain.ainvoke({"input": message}, config=config)
+        elapsed = time.perf_counter() - start
+        logger.info(
+            "LLM response | session=%s  elapsed=%.2fs",
+            session_id,
+            elapsed,
+        )
+        return result.content
+    except Exception as exc:
+        elapsed = time.perf_counter() - start
+        logger.error(
+            "LLM error    | session=%s  elapsed=%.2fs  error=%s",
+            session_id,
+            elapsed,
+            exc,
+        )
+        raise
+
+
+@task(name="chat_suggestions")
+async def get_suggestions(message: str, reply: str, provider: str = "nim_api") -> list[str]:
+    """Generate 2-3 follow-up question suggestions for the last conversation turn.
+
+    Returns an empty list on any failure so the chat is never broken.
+    """
+    llm = _llms.get(provider)
+    if llm is None:
+        return []
+
+    prompt = (
+        "Given the following exchange, suggest exactly 3 short follow-up questions "
+        "the user might want to ask next. "
+        "Reply with ONLY a valid JSON array of 3 strings and nothing else.\n\n"
+        f"User: {message}\n"
+        f"Assistant: {reply}"
+    )
+
+    try:
+        result = await llm.ainvoke(prompt)
+        content = result.content.strip()
+        # Strip optional markdown code fences
+        if content.startswith("```"):
+            lines = content.splitlines()
+            content = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        suggestions = _json.loads(content.strip())
+        if isinstance(suggestions, list):
+            return [str(s) for s in suggestions[:3]]
+        return []
+    except Exception as exc:
+        logger.warning("Suggestion generation failed: %s", exc)
+        return []
+
+
+@task(name="chat_starter_suggestions")
+async def get_starter_suggestions(system_prompt: str, provider: str = "nim_api") -> list[str]:
+    """Generate 3 opening question suggestions for a fresh session.
+
+    Uses the system prompt to tailor suggestions to the assistant's role.
+    Returns an empty list on any failure so the chat is never broken.
+    """
+    llm = _llms.get(provider)
+    if llm is None:
+        return []
+
+    role_context = (
+        f"The assistant's role is described as: {system_prompt}"
+        if system_prompt.strip()
+        else "The assistant is a general-purpose AI assistant."
+    )
+
+    prompt = (
+        f"{role_context}\n\n"
+        "Suggest exactly 3 short, distinct opening questions a new user might want to ask this assistant. "
+        "Reply with ONLY a valid JSON array of 3 strings and nothing else."
+    )
+
+    try:
+        result = await llm.ainvoke(prompt)
+        content = result.content.strip()
+        # Strip optional markdown code fences
+        if content.startswith("```"):
+            lines = content.splitlines()
+            content = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        suggestions = _json.loads(content.strip())
+        if isinstance(suggestions, list):
+            return [str(s) for s in suggestions[:3]]
+        return []
+    except Exception as exc:
+        logger.warning("Starter suggestion generation failed: %s", exc)
+        return []

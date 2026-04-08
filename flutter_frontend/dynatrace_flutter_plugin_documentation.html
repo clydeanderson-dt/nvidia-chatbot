@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en-us"><head><script src="https://www.googletagmanager.com/gtm.js?id=GTM-MX6DBN9" async="async"></script><script src="/static/hash-qdshfgq0/js/gtm.js" async="async"></script><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="ie=edge"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="twitter:card" content="summary"/><meta name="twitter:site" content="@dart_lang"/><meta name="twitter:description" content="The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation."/><meta name="twitter:image" content="https://pub.dev/static/hash-qdshfgq0/img/pub-dev-icon-cover-image.png"/><meta property="og:type" content="website"/><meta property="og:site_name" content="Dart packages"/><meta property="og:title" content="dynatrace_flutter_plugin | Flutter package"/><meta property="og:description" content="The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation."/><meta property="og:image" content="https://pub.dev/static/hash-qdshfgq0/img/pub-dev-icon-cover-image.png"/><meta property="og:url" content="https://pub.dev/packages/dynatrace_flutter_plugin"/><title>dynatrace_flutter_plugin | Flutter package</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&amp;family=Google+Sans+Display:wght@400&amp;family=Google+Sans+Text:wght@400;500;700&amp;family=Google+Sans+Mono:wght@400;700&amp;display=swap"/><link rel="shortcut icon" href="/static/hash-qdshfgq0/img/flutter-logo-32x32.png"/><meta rel="apple-touch-icon" href="/static/hash-qdshfgq0/img/flutter-logo-32x32.png"/><meta rel="apple-touch-icon-precomposed" href="/static/hash-qdshfgq0/img/flutter-logo-32x32.png"/><link rel="stylesheet" href="https://www.gstatic.com/glue/v25_0/ccb.min.css"/><link rel="search" type="application/opensearchdescription+xml" title="Dart packages" href="/osd.xml"/><link rel="canonical" href="https://pub.dev/packages/dynatrace_flutter_plugin"/><meta name="description" content="The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation."/><link rel="alternate" type="application/atom+xml" title="Recently published packages on pub.dev" href="/feed.atom"/><link rel="alternate" type="application/atom+xml" title="Recently published versions of package dynatrace_flutter_plugin on pub.dev" href="/api/packages/dynatrace_flutter_plugin/feed.atom"/><link rel="stylesheet" type="text/css" href="/static/hash-qdshfgq0/material/bundle/styles.css"/><link rel="stylesheet" type="text/css" href="/static/hash-qdshfgq0/css/style.css"/><script src="/static/hash-qdshfgq0/material/bundle/script.min.js" defer="defer"></script><script src="/static/hash-qdshfgq0/js/script.dart.js" defer="defer"></script><script src="https://www.gstatic.com/brandstudio/kato/cookie_choice_component/cookie_consent_bar.v3.js" defer="defer" data-autoload-cookie-consent-bar="true"></script><meta name="pub-page-data" content="eyJwa2dEYXRhIjp7InBhY2thZ2UiOiJkeW5hdHJhY2VfZmx1dHRlcl9wbHVnaW4iLCJ2ZXJzaW9uIjoiMy4zMzMuMSIsInB1Ymxpc2hlcklkIjoiZHluYXRyYWNlLmNvbSIsImlzRGlzY29udGludWVkIjpmYWxzZSwiaXNMYXRlc3QiOnRydWV9LCJzZXNzaW9uQXdhcmUiOmZhbHNlfQ=="/><link rel="preload" href="/static/hash-qdshfgq0/highlight/highlight-with-init.js" as="script"/></head><body class="light-theme"><script src="/static/hash-qdshfgq0/js/dark-init.js"></script><noscript><iframe class="-gtm-iframe" src="https://www.googletagmanager.com/ns.html?id=GTM-MX6DBN9" height="0" width="0"></iframe></noscript><div class="site-header"><button class="hamburger" aria-label="menu toggle"></button><a class="logo" href="/" aria-label="Go to the landing page of pub.dev"><img class="site-logo" src="/static/hash-qdshfgq0/img/pub-dev-logo.svg" alt="" width="140" height="30" role="presentation"/></a><div class="site-header-space"></div><div class="site-header-mask"></div><div class="site-header-search"><form action="/packages" method="GET"><input class="site-header-search-input" name="q" placeholder="New search..." autocomplete="on" title="Search"/></form></div><nav class="site-header-nav scroll-container"><div class="nav-login-container"><button id="-account-login" class="nav-main-button link">Sign in</button></div><div class="nav-container nav-help-container hoverable"><button class="nav-main-button">Help</button><div class="nav-hover-popup"><div class="nav-table-columns"><div class="nav-table-column"><h3>pub.dev</h3><a class="nav-link" href="/help/search" rel="noopener" target="_blank">Searching for packages</a><a class="nav-link" href="/help/scoring" rel="noopener" target="_blank">Package scoring and pub points</a></div><div class="nav-table-column"><h3>Flutter</h3><a class="nav-link" href="https://flutter.dev/using-packages/" rel="noopener" target="_blank">Using packages</a><a class="nav-link" href="https://flutter.dev/developing-packages/" rel="noopener" target="_blank">Developing packages and plugins</a><a class="nav-link" href="https://dart.dev/tools/pub/publishing" rel="noopener" target="_blank">Publishing a package</a></div><div class="nav-table-column"><h3>Dart</h3><a class="nav-link" href="https://dart.dev/guides/packages" rel="noopener" target="_blank">Using packages</a><a class="nav-link" href="https://dart.dev/tools/pub/publishing" rel="noopener" target="_blank">Publishing a package</a></div></div></div></div><div class="nav-container nav-help-container-mobile foldable"><h3 class="foldable-button">pub.dev <img class="foldable-icon" src="/static/hash-qdshfgq0/img/nav-mobile-foldable-icon.svg" alt="toggle folding of the section" width="13" height="6"/></h3><div class="foldable-content"><a class="nav-link" href="/help/search" rel="noopener" target="_blank">Searching for packages</a><a class="nav-link" href="/help/scoring" rel="noopener" target="_blank">Package scoring and pub points</a></div></div><div class="nav-container nav-help-container-mobile foldable"><h3 class="foldable-button">Flutter <img class="foldable-icon" src="/static/hash-qdshfgq0/img/nav-mobile-foldable-icon.svg" alt="toggle folding of the section" width="13" height="6"/></h3><div class="foldable-content"><a class="nav-link" href="https://flutter.dev/using-packages/" rel="noopener" target="_blank">Using packages</a><a class="nav-link" href="https://flutter.dev/developing-packages/" rel="noopener" target="_blank">Developing packages and plugins</a><a class="nav-link" href="https://dart.dev/tools/pub/publishing" rel="noopener" target="_blank">Publishing a package</a></div></div><div class="nav-container nav-help-container-mobile foldable"><h3 class="foldable-button">Dart <img class="foldable-icon" src="/static/hash-qdshfgq0/img/nav-mobile-foldable-icon.svg" alt="toggle folding of the section" width="13" height="6"/></h3><div class="foldable-content"><a class="nav-link" href="https://dart.dev/guides/packages" rel="noopener" target="_blank">Using packages</a><a class="nav-link" href="https://dart.dev/tools/pub/publishing" rel="noopener" target="_blank">Publishing a package</a></div></div></nav><button class="-pub-theme-toggle" aria-label="light/dark theme toggle"></button></div><div id="banner-container"></div><main class="container"><div class="detail-wrapper -active -has-info-box"><div class="detail-header -is-loose"><div class="detail-container"><div class="detail-header-outer-block"><div class="detail-header-content-block"><h1 class="title pub-monochrome-icon-hoverable">dynatrace_flutter_plugin 3.333.1 <span class="pkg-page-title-copy"><img class="pub-monochrome-icon pkg-page-title-copy-icon filter-invert-on-dark" src="/static/hash-qdshfgq0/img/content-copy-icon.svg" alt="copy &quot;dynatrace_flutter_plugin: ^3.333.1&quot; to clipboard" width="18" height="18" title="Copy &quot;dynatrace_flutter_plugin: ^3.333.1&quot; to clipboard" data-copy-content="dynatrace_flutter_plugin: ^3.333.1" data-ga-click-event="copy-package-version"/><div class="pkg-page-title-copy-feedback"><span class="code">dynatrace_flutter_plugin: ^3.333.1</span> copied to clipboard</div></span></h1><div class="metadata">Published <span><a class="-x-ago" href="" title="Mar 10, 2026" role="button" data-timestamp="1773150349499">22 days ago</a></span> • <a class="-pub-publisher" href="/publishers/dynatrace.com"><img class="-pub-publisher-shield filter-invert-on-dark" src="/static/hash-qdshfgq0/img/material-icon-verified.svg" alt="verified publisher" width="14" height="14" title="Published by a pub.dev verified publisher"/>dynatrace.com</a></div><div class="detail-tags-and-like"><div class="detail-tags"><div class="-pub-tag-badge"><span class="tag-badge-main">SDK</span><a class="tag-badge-sub" href="/packages?q=sdk%3Aflutter" rel="nofollow" title="Packages compatible with Flutter SDK">Flutter</a></div><div class="-pub-tag-badge"><span class="tag-badge-main">Platform</span><a class="tag-badge-sub" href="/packages?q=platform%3Aandroid" rel="nofollow" title="Packages compatible with Android platform">Android</a><a class="tag-badge-sub" href="/packages?q=platform%3Aios" rel="nofollow" title="Packages compatible with iOS platform">iOS</a></div></div><div class="like-button-and-label"><button class="mdc-icon-button like-button-and-label--button" data-ga-click-event="toggle-like" aria-pressed="false" data-package="dynatrace_flutter_plugin" data-value="31" title="Like this package"><img class="mdc-icon-button__icon" src="/static/hash-qdshfgq0/img/like-inactive.svg" alt="liked status: inactive" width="18" height="18"/><img class="mdc-icon-button__icon mdc-icon-button__icon--on" src="/static/hash-qdshfgq0/img/like-active.svg" alt="liked status: active" width="18" height="18"/></button><span class="like-button-and-label--count-wrapper"><span class="like-button-and-label--count">31</span></span></div></div></div></div></div></div><div class="detail-container"><div class="detail-lead"><div class="detail-metadata-toggle"><div class="detail-metadata-toggle-icon">→</div><h3 class="detail-lead-title">Metadata</h3></div><p class="detail-lead-text">The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation.</p><p class="detail-lead-more"><a class="detail-metadata-toggle">More...</a></p></div></div><div class="detail-body"><div class="detail-tabs"><div class="detail-tabs-wide-header"><div class="detail-container"><ul class="detail-tabs-header"><li class="detail-tab tab-button detail-tab-readme-title -active">Readme</li><li class="detail-tab tab-link detail-tab-changelog-title"><a href="/packages/dynatrace_flutter_plugin/changelog" role="button">Changelog</a></li><li class="detail-tab tab-link detail-tab-example-title"><a href="/packages/dynatrace_flutter_plugin/example" role="button">Example</a></li><li class="detail-tab tab-link detail-tab-installing-title"><a href="/packages/dynatrace_flutter_plugin/install" role="button">Installing</a></li><li class="detail-tab tab-link detail-tab-versions-title"><a href="/packages/dynatrace_flutter_plugin/versions" role="button">Versions</a></li><li class="detail-tab tab-link detail-tab-analysis-title"><a href="/packages/dynatrace_flutter_plugin/score" role="button">Scores</a></li></ul></div></div><div class="detail-container detail-body-main"><div class="detail-tabs-content"><section class="tab-content detail-tab-readme-content -active markdown-body"><p><a href="https://dynatrace.com" rel="ugc"><img src="https://assets.dynatrace.com/content/dam/dynatrace/misc/dynatrace_web.png" alt="N|Solid"></a></p>
+<h1 id="dynatrace-flutter-plugin" class="hash-header">Dynatrace Flutter Plugin <a href="#dynatrace-flutter-plugin" class="hash-link">#</a></h1>
+<p>The Dynatrace Flutter plugin adds the Dynatrace OneAgent for Android and iOS to your Flutter app and provides an API to use <a href="#manual-instrumentation">manual instrumentation</a> for Flutter/Dart data capturing.</p>
+<h2 id="requirements" class="hash-header">Requirements <a href="#requirements" class="hash-link">#</a></h2>
+<ul>
+<li>Flutter Version &gt;= 3.10.0</li>
+<li>Dart Version &gt;= 3.0.0</li>
+<li>Gradle: &gt;= 7.x</li>
+<li>Android API Level &gt;= 21</li>
+<li>Java &gt;= 11</li>
+<li>iOS SDK &gt;= 12</li>
+</ul>
+<h2 id="agent-versions" class="hash-header">Agent Versions <a href="#agent-versions" class="hash-link">#</a></h2>
+<p>These agent versions are configured in this plugin:</p>
+<ul>
+<li>Android Agent: 8.333.1.1006</li>
+<li>iOS Agent: 8.333.1.1005</li>
+</ul>
+<h2 id="important-notes" class="hash-header">Important Notes <a href="#important-notes" class="hash-link">#</a></h2>
+<p>After installing the Dynatrace Flutter plugin via the <a href="#1-install-the-plugin">quick setup</a> section, please follow the <a href="#manual-instrumentation">manual instrumentation</a> API section as this implementation will be required to capture actions based on Flutter layer, i.e. widgets like buttons or gestures/user input.</p>
+<p>For information on what is automatically captured in the native Android/iOS layer of your application, please see our <a href="#native-layer">native layer</a> section.</p>
+<h2 id="new-with-version-3x" class="hash-header">New with version 3.x <a href="#new-with-version-3x" class="hash-link">#</a></h2>
+<ul>
+<li>Supported Web Request Framework: <a href="https://pub.dev/packages/http">Dart's http package</a>
+<ul>
+<li>See <a href="#instrumenting-web-requests-from-darts-http-package">DynatraceHttpClient</a> for more information.</li>
+</ul>
+</li>
+<li>Removal of auto-instrumented http requests via the <code>dart:io</code> library
+<ul>
+<li>See our <a href="#migration-guide">Migration Guide</a>.</li>
+</ul>
+</li>
+</ul>
+<h2 id="quick-setup" class="hash-header">Quick Setup <a href="#quick-setup" class="hash-link">#</a></h2>
+<ol>
+<li><a href="#1-install-the-plugin">Install the plugin</a></li>
+<li><a href="#2-set-up-dynatraceconfigyaml">Setup configuration</a></li>
+<li><a href="#3-start-the-flutter-plugin">Start the Flutter plugin</a></li>
+<li><a href="#4-build-and-run-your-app">Build and run your app</a></li>
+</ol>
+<h2 id="startup" class="hash-header">Startup <a href="#startup" class="hash-link">#</a></h2>
+<ul>
+<li><a href="#plugin-startup">Plugin Startup</a></li>
+<li><a href="#manual-oneagent-startup">Manual OneAgent Startup</a></li>
+</ul>
+<h2 id="advanced-topics" class="hash-header">Advanced topics <a href="#advanced-topics" class="hash-link">#</a></h2>
+<ul>
+<li><a href="#native-layer">Native layer</a></li>
+<li><a href="#manual-instrumentation">Manual instrumentation</a>
+<ul>
+<li><a href="#create-custom-actions">Create Custom Action</a></li>
+<li><a href="#create-custom-sub-actions">Create Custom Sub Action</a></li>
+<li><a href="#report-values">Report Values and Errors</a></li>
+<li><a href="#instrumenting-web-requests-from-darts-http-package">Instrumenting Web Requests from Dart's http package</a></li>
+<li><a href="#request--response-size-calculation">Request &amp; Response size calculation</a></li>
+<li><a href="#manual-web-request-monitoring">Manual Web Request Monitoring</a></li>
+<li><a href="#url-exclusion-list">URL exclusion list</a></li>
+<li><a href="#identify-a-user">Identify a User</a></li>
+<li><a href="#capturing-zone-errors-when-using-startwithoutwidget">Capture Zone Errors using startWithoutWidget</a></li>
+<li><a href="#crash-reporting">Crash Reporting</a></li>
+<li><a href="#report-crashes-from-non-main-isolates">Report Crashes from Isolates</a></li>
+<li><a href="#user-privacy-options">User Privacy Options</a></li>
+<li><a href="#report-gps-location">Report GPS Position</a></li>
+<li><a href="#business-events-capturing">Business events capturing</a></li>
+<li><a href="#platform-independent-reporting">Platform independent reporting</a></li>
+</ul>
+</li>
+<li><a href="#new-rum-experience">New RUM experience</a>
+<ul>
+<li><a href="#send-event">Send Event</a></li>
+<li><a href="#send-session-property-event">Send Session Property Event</a></li>
+<li><a href="#event-modifier">Event Modifier</a></li>
+<li><a href="#http-event-modifier">Http Event Modifier</a></li>
+<li><a href="#send-exception-event">Send Exception Event</a></li>
+<li><a href="#send-http-request-event">Send Http Event</a></li>
+<li><a href="#view-monitoring">View Monitoring</a></li>
+<li><a href="#view-detection">View Detection</a></li>
+<li><a href="#manual-view-detection">Manual View Detection</a></li>
+<li><a href="#automatic-view-detection">Automatic View Detection</a></li>
+<li><a href="#user-interaction-tracking">User Interaction Tracking</a></li>
+<li><a href="#userinteractionwidget">UserInteractionWidget</a></li>
+</ul>
+</li>
+<li><a href="#webrequest-behavior">Webrequest behavior</a></li>
+<li><a href="#navigation-observer">Navigation Observer</a></li>
+<li><a href="#go_router">go_router</a></li>
+<li><a href="#Auto-Config---Custom-Arguments">Customize Configuration</a></li>
+<li><a href="#structure-of-the-dynatraceconfigyaml-file">Configuration structure</a>
+<ul>
+<li><a href="#define-build-stages-in-dynatraceconfigyaml">Define build stages</a></li>
+<li><a href="#user-opt-in-mode">User Opt In Mode</a></li>
+<li><a href="#mobile-oneagent-debug-logs">OneAgent debug logs</a></li>
+</ul>
+</li>
+<li><a href="#maven-central-in-top-level-gradle-file">Maven Central in top-level gradle file</a></li>
+<li><a href="#migration-guide">Migration Guide</a></li>
+<li><a href="#instrumentation-overhead">Instrumentation Overhead</a></li>
+</ul>
+<h2 id="troubleshooting" class="hash-header">Troubleshooting <a href="#troubleshooting" class="hash-link">#</a></h2>
+<ul>
+<li><a href="#known-issues">Known Issues</a></li>
+<li><a href="#dynatrace-documentation">Documentation</a></li>
+<li><a href="#report-a-bug-or-open-a-support-case">Report bug / Get support</a></li>
+</ul>
+<h1 id="quick-setup-2" class="hash-header">Quick Setup <a href="#quick-setup-2" class="hash-link">#</a></h1>
+<h2 id="1-install-the-plugin" class="hash-header">1. Install the plugin <a href="#1-install-the-plugin" class="hash-link">#</a></h2>
+<p>Inside the app folder execute:</p>
+<pre><code class="language-sh">flutter pub add dynatrace_flutter_plugin
+</code></pre>
+<p>After adding the dependency, resolve any dependencies if it hasn't happened automatically.</p>
+<ul>
+<li>From the terminal, run <code>flutter pub get</code>.</li>
+<li>From Android Studio/IntelliJ, click <strong>Packages get</strong> in the action ribbon at the top of <code>pubspec.yaml</code>.</li>
+<li>From VS Code, click <strong>Get Packages</strong> located to the right of the action ribbon at the top of <code>pubspec.yaml</code>.</li>
+</ul>
+<h2 id="2-set-up-dynatraceconfigyaml" class="hash-header">2. Set up <code>dynatrace.config.yaml</code> <a href="#2-set-up-dynatraceconfigyaml" class="hash-link">#</a></h2>
+<ul>
+<li>Create a mobile app in Dynatrace and open <strong>Mobile app settings</strong>. Go to Flutter configuration and download the configuration <code>dynatrace.config.yaml</code>. Store it in the root folder of your application.</li>
+<li>Run <code>dart run dynatrace_flutter_plugin</code> in the root of your Flutter project. This configures both Android and iOS projects with settings from <code>dynatrace.config.yaml</code>.
+<ul>
+<li>If you want to see more logging or customize some paths via <a href="#Auto-Config---Custom-Arguments">custom arguments</a> while executing the command.</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>💡 Note</strong>: You need to execute this script every time you change something in your <code>dynatrace.config.yaml</code> to apply the config to the Android and iOS projects.</p>
+</blockquote>
+<h3 id="data-collection" class="hash-header">Data collection <a href="#data-collection" class="hash-link">#</a></h3>
+<p>By default, the <a href="#user-opt-in-mode">user opt-in mode</a> is activated in the configuration. This means that OneAgent only sends a limited number of actions until you change the <a href="#user-privacy-options">privacy mode</a>.</p>
+<h2 id="3-start-the-flutter-plugin" class="hash-header">3. Start the Flutter plugin <a href="#3-start-the-flutter-plugin" class="hash-link">#</a></h2>
+<p>There are two start options to run our Flutter plugin. The Flutter plugin starts only when you directly call it via <code>start()</code> or <code>startWithoutWidget()</code>.</p>
+<p><code>start({Configuration configuration})</code> takes an optional <a href="#plugin-startup">configuration</a> object to customize the behavior of the plugin. This configuration parameter can only be used for <a href="#manual-oneagent-startup">manual startup</a>. You can provide values such as <code>beaconUrl</code> or <code>applicationId</code> at runtime. <code>runApp()</code> is called internally.</p>
+<p><code>startWithoutWidget({Configuration configuration})</code> is similar to <code>start({Configuration configuration})</code>. The two differences are that it does not call <code>runApp()</code> internally (that is controlled by you) and zoned errors will not be captured automatically. However, uncaught errors will be captured by default. You should see the following in your application:</p>
+<pre><code class="language-dart">void main() =&gt; runApp(MyApp());
+</code></pre>
+<p>Replace it with one of the following statements:</p>
+<p>Option 1:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void main() =&gt; Dynatrace().start(MyApp());
+</code></pre>
+<p>Option 2:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void main() {
+  Dynatrace().startWithoutWidget();
+  runApp(MyApp());
+}
+</code></pre>
+<h2 id="4-build-and-run-your-app" class="hash-header">4. Build and run your app <a href="#4-build-and-run-your-app" class="hash-link">#</a></h2>
+<blockquote>
+<p>Before running your app, please see <a href="#important-notes">important notes</a> relating to capturing  Flutter/Dart user actions.</p>
+</blockquote>
+<p>Call <code>flutter run</code> and the application starts including Dynatrace OneAgent.</p>
+<h1 id="startup-2" class="hash-header">Startup <a href="#startup-2" class="hash-link">#</a></h1>
+<h3 id="plugin-startup" class="hash-header">Plugin startup <a href="#plugin-startup" class="hash-link">#</a></h3>
+<p>The startup of the plugin is triggered via the <code>start(Widget _topLevelWidget, {Configuration? configuration})</code> method. Without the start-up call, the plugin doesn't send data that is coming from the Flutter app part. The optional configuration parameters should only be used when doing a manual startup. The available options  which are offered by the Configuration constructor are listed in the following table:</p>
+<pre><code class="language-dart">Configuration(
+  reportCrash: true,
+  logLevel: LogLevel.Info,
+  beaconUrl: '&lt;beacon-url&gt;',
+  applicationId: '&lt;app-id&gt;',
+  certificateValidation: true,
+  userOptIn: false
+);
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Property name</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reportCrash</td>
+<td>bool</td>
+<td>true</td>
+<td>Reports automatically Dart and Flutter crashes.</td>
+</tr>
+<tr>
+<td>logLevel</td>
+<td>LogLevel</td>
+<td>LogLevel.Info</td>
+<td>Allows you to choose between <code>LogLevel.Info</code> and <code>LogLevel.Debug</code>. Debug returns more logs. This is especially important when something is not functioning correctly.</td>
+</tr>
+<tr>
+<td>beaconUrl</td>
+<td>String</td>
+<td></td>
+<td>(Required) Identifies your environment within Dynatrace. This property is mandatory for <a href="#manual-oneagent-startup">manual startup</a>. OneAgent issues an error when the key isn't present.</td>
+</tr>
+<tr>
+<td>applicationId</td>
+<td>String</td>
+<td></td>
+<td>(Required) Identifies your mobile app. This property is mandatory for <a href="#manual-oneagent-startup">manual startup</a>. OneAgent issues an error when the key isn't present.</td>
+</tr>
+<tr>
+<td>certificateValidation</td>
+<td>bool</td>
+<td>true</td>
+<td>Allows the use of self-signed certificates. By default, it is set to true. When set to false, OneAgent accepts self-signed certificates that are not signed by a root-CA. This configuration key doesn't impact mobile app connections. It's only used for OneAgent communication, but doesn't overrule the host-name validation.</td>
+</tr>
+<tr>
+<td>userOptIn</td>
+<td>bool</td>
+<td>false</td>
+<td>Activates the privacy mode when set to <code>true</code>. User consent must be queried and set. The privacy settings for <a href="#user-privacy-options">user privacy options</a> can be changed via OneAgent SDK for Mobile as described under Data privacy. The default value is <code>false</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: The values used for the parameters are their default value.</p>
+<blockquote>
+<p><strong>⚠️ Attention:</strong> Please use those parameters only when doing a manual startup. If you want to do an automated startup, please configure the properties via the <a href="#structure-of-the-dynatraceconfigyaml-file">auto startup configuration</a>. You will find a list which explains all the counterparts for the available options here.</p>
+</blockquote>
+<p>An example could look like the following:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void main() =&gt; Dynatrace().start(MyApp(),
+        configuration: Configuration(
+          beaconUrl: '&lt;beacon-url&gt;',
+          applicationId: '&lt;app-id&gt;',
+          logLevel: LogLevel.Debug,
+        ));
+</code></pre>
+<h3 id="manual-oneagent-startup" class="hash-header">Manual OneAgent Startup <a href="#manual-oneagent-startup" class="hash-link">#</a></h3>
+<p>If automated startup via <code>dynatrace.config.yaml</code> isn't possible or desired, you can manually start the Dynatrace OneAgent and configure values like <code>beaconUrl</code> and <code>applicationId</code> at runtime.</p>
+<blockquote>
+<p><strong>⚠️ Important:</strong> Automated startup captures early lifecycle events, such as the application start. Manual startup occurs later, meaning those early events (including app start) will be missed until the agent is initialized.</p>
+</blockquote>
+<h4 id="steps-for-manual-startup">Steps for Manual Startup</h4>
+<ol>
+<li>Disable automated startup in <code>dynatrace.config.yaml</code>:</li>
+</ol>
+<pre><code class="language-yaml">android:
+  config: 
+    "dynatrace {
+      configurations {
+        defaultConfig {
+          autoStart.enabled false
+        }
+      }
+    }"
+  
+ios:
+  config: 
+    "&lt;key&gt;DTXAutoStart&lt;/key&gt;
+    &lt;false/&gt;"
+</code></pre>
+<ol start="2">
+<li>Start the agent manually with at least <code>beaconUrl</code> and <code>applicationId</code>:</li>
+</ol>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void main() =&gt; Dynatrace().start(MyApp(), configuration: Configuration(beaconUrl: '..', applicationId: '..'));
+</code></pre>
+<p>Any values not explicitly set in the Configuration object will fall back to those defined in dynatrace.config.yaml, or to default values if not present there.</p>
+<blockquote>
+<p>💡 <strong>Note</strong>: If you don’t disable automated startup, the manual configuration will be ignored—even if you call start() with a configuration manually.</p>
+</blockquote>
+<h1 id="advanced-topics-2" class="hash-header">Advanced topics <a href="#advanced-topics-2" class="hash-link">#</a></h1>
+<h2 id="native-layer" class="hash-header">Native layer <a href="#native-layer" class="hash-link">#</a></h2>
+<p>When using a native view like an Activity (Android) or View Controller (iOS) with native elements/controls, the Android/iOS agent that is running via the flutter plugin will capture these actions as they would in a native Android/iOS app out of the box. So if <code>autoStart</code> is set to true (default value), then you will likely see a <code>Loading &lt;AppName&gt;</code> action with the lifecycle events inside of the user action waterfall in the captured user session.</p>
+<p>For more information on the the Android/iOS agents, please see our <a href="#dynatrace-documentation">documentation</a> section.</p>
+<h2 id="manual-instrumentation" class="hash-header">Manual instrumentation <a href="#manual-instrumentation" class="hash-link">#</a></h2>
+<p>To use the API of the Flutter plugin, add the following import at the top of your <code>dart</code> file:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+</code></pre>
+<h3 id="create-custom-actions" class="hash-header">Create custom actions <a href="#create-custom-actions" class="hash-link">#</a></h3>
+<p>To create a custom action named <code>'MyButton tapped'</code>, use the following code:</p>
+<pre><code class="language-dart">DynatraceRootAction myAction = Dynatrace().enterAction('MyButton tapped');
+//Perform the action and whatever else is needed.
+myAction.leaveAction();
+</code></pre>
+<p><img src="https://dt-cdn.net/images/fluttersingle-800-189638faf0.png" alt="flutterSingle"></p>
+<p><strong>Note</strong>: <code>leaveAction</code> closes the action again. To report values for this action before closing, see <a href="#report-values">Report values</a>.</p>
+<p><strong>Important:</strong> Action names are limited to 250 characters and will be truncated if they exceed this limit.</p>
+<h3 id="create-custom-sub-actions" class="hash-header">Create custom sub actions <a href="#create-custom-sub-actions" class="hash-link">#</a></h3>
+<p>You can create a single custom action and several sub-actions. <code>MyButton Sub Action</code> is automatically put under <code>MyButton tapped</code>. Only one sub-action level is allowed; you can't create a sub sub-action.</p>
+<pre><code class="language-dart">DynatraceRootAction myAction = Dynatrace().enterAction('MyButton tapped');
+DynatraceAction mySubAction = myAction.enterAction('MyButton Sub Action');
+
+//Perform the action and whatever else is needed.
+mySubAction.leaveAction();
+myAction.leaveAction();
+</code></pre>
+<p><img src="https://dt-cdn.net/images/fluttersub-800-a24387b6e3.png" alt="flutterSub"></p>
+<h3 id="report-values" class="hash-header">Report values <a href="#report-values" class="hash-link">#</a></h3>
+<p>You can report certain values for any open action. If you want to report a value without action reference skip to the <a href="#report-values-without-action-reference">next section</a>. The following API is available for <code>DynatraceRootAction</code> and <code>DynatraceAction</code>:</p>
+<pre><code class="language-dart">void reportError(String errorName, int errorCode, {Platform platform});
+void reportErrorStacktrace(
+      String errorName, String errorValue, String reason, String stacktrace,
+      {Platform? platform});
+void reportEvent(String eventName, {Platform? platform});
+void reportStringValue(String valueName, String value, {Platform? platform});
+void reportIntValue(String valueName, int value, {Platform? platform});
+void reportDoubleValue(String valueName, double value, {Platform? platform});
+</code></pre>
+<p>To report a string value, use the following code:</p>
+<pre><code class="language-dart">DynatraceRootAction myAction = Dynatrace().enterAction('MyButton tapped');
+myAction.reportStringValue('ValueName', 'ImportantValue');
+myAction.leaveAction();
+</code></pre>
+<p><img src="https://dt-cdn.net/images/flutterstring-800-26d0b578db.png" alt="flutterString"></p>
+<p>The <code>{Platform platform}</code> optional parameter is available for API calls. This parameter offers the possibility to report values only for a specific platform. For more information, see <a href="#platform-independent-reporting">platform independent reporting</a>.</p>
+<p>Important: Action names and String values are limited to 250 characters and will be truncated if they exceed this limit.</p>
+<h3 id="report-values-without-action-reference" class="hash-header">Report values without action reference <a href="#report-values-without-action-reference" class="hash-link">#</a></h3>
+<p>This section shows an API that offers reporting of values directly with the main agent interface. Be aware that those methods are helper methods and are internally attaching the value to the latest opened action. If there is no open action, the value will not be reported.</p>
+<pre><code class="language-dart">void reportError(String errorName, int errorCode, {Platform platform});
+void reportErrorStacktrace(
+      String errorName, String errorValue, String reason, String stacktrace,
+      {Platform platform});
+void reportEvent(String eventName, {Platform platform});
+void reportStringValue(String valueName, String value, {Platform platform});
+void reportIntValue(String valueName, int value, {Platform platform});
+void reportDoubleValue(String valueName, double value, {Platform platform});
+</code></pre>
+<p>To report a string value, use the following code:</p>
+<pre><code class="language-dart">Dynatrace().reportStringValue('ValueName', 'ImportantValue');
+</code></pre>
+<p>The <code>{Platform platform}</code> optional parameter is available for API calls. This parameter offers the possibility to report values only for a specific platform. For more information, see <a href="#platform-independent-reporting">platform independent reporting</a>.</p>
+<h3 id="instrumenting-web-requests-from-darts-http-package" class="hash-header">Instrumenting Web Requests from Dart's http package <a href="#instrumenting-web-requests-from-darts-http-package" class="hash-link">#</a></h3>
+<p>Our Flutter plugin provides a wrapper over Dart's <a href="https://pub.dev/packages/http">http</a> client. It can be used to automatically tag and time the web requests that are called.</p>
+<h4 id="using-dynatrace-to-create-a-dynatracehttpclient">Using Dynatrace to create a DynatraceHttpClient</h4>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+var client = Dynatrace().createHttpClient();
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+try {
+  await client.get(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+} finally {
+  webAction.leaveAction();
+  client.close();
+}
+</code></pre>
+<p><img src="https://dt-cdn.net/images/clientflutter-800-a56afe2a41.png" alt="clientFlutter"></p>
+<p>It is also possible to link web requests with a user action. <code>DynatraceHttpClient</code> will automatically link a web request to the current open user action. In the following example, the request to <em><a href="https://dynatrace.com" rel="ugc">https://dynatrace.com</a></em>, <em><a href="https://flutter.dev">https://flutter.dev</a></em> and <em><a href="https://dart.dev">https://dart.dev</a></em> will be visible in waterfall analysis of the action <em>Button Click</em>.</p>
+<pre><code class="language-dart">var client = Dynatrace().createHttpClient();
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+
+try {
+  await client.get(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+}
+
+try {
+  await client.get(Uri.parse('https://flutter.dev'));
+} catch (error) {
+  // insert error handling here
+}
+
+try {
+  await client.get(Uri.parse('https://dart.dev'));
+} catch (error) {
+  // insert error handling here
+}
+
+webAction.leaveAction();
+client.close();
+</code></pre>
+<p><img src="https://dt-cdn.net/images/dynatracehttpmulti-800-fa29d4da1c.png" alt="flutterWebMulti"></p>
+<p>Use your own Client/IOClient/RetryClient from Dart's http package:</p>
+<p>Client:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/http.dart';
+import 'package:http/retry.dart';
+
+final myClient = Client();
+var client = Dynatrace().createHttpClient(client: myClient);
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+try {
+  await client.post(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+} finally {
+  webAction.leaveAction();
+  client.close();
+}
+</code></pre>
+<p>IOClient:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/io_client.dart';
+
+final ioClient = IOClient();
+var client = Dynatrace().createHttpClient(client: ioClient);
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+try {
+  await client.head(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+} finally {
+  webAction.leaveAction();
+  client.close();
+}
+</code></pre>
+<p>RetryClient:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/retry.dart';
+import 'package:http/http.dart';
+
+final retryClient = RetryClient(Client());
+var client = Dynatrace().createHttpClient(client: retryClient);
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+try {
+  await client.read(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+} finally {
+  webAction.leaveAction();
+  client.close();
+}
+</code></pre>
+<h3 id="request--response-size-calculation" class="hash-header">Request &amp; Response size calculation <a href="#request--response-size-calculation" class="hash-link">#</a></h3>
+<p>The web request instrumentation is by default reporting request and response bytes. This calculation has some limitations, therefore the <code>createHttpClient</code> function allows you to pass <code>DynatraceHttpClientOptions</code>. Per default, the <code>HttpClient</code> will append following headers:</p>
+<ul>
+<li>"Accept-Encoding": "gzip"</li>
+<li>"User-Agent": "Dart/X.X (dart:io)"</li>
+</ul>
+<p>These headers are not visible at the request size calculation, but can be modified in the <code>HttpClient</code> (e.g <code>request.headers.removeAll(HttpHeaders.acceptEncodingHeader)</code>). If the header value will be overridden by a different value, our calculation will not be able to consider this as we expect the default header value. For example, if "Accept-Encoding" is removed, use <code>DynatraceHttpClientOptions</code> to get correct values for the request size calculation (see the example below). If headers are changed on request basis and a different "Accept-Encoding" value is appended directly, the calculation will consider this.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/http.dart';
+
+final myClient = Client();
+
+Map&lt;String, String&gt; _myNewDefaultHeaders = {
+  'User-Agent': 'Dart/X.X (dart:io)'
+};
+DynatraceHttpClientOptions _options = DynatraceHttpClientOptions(_myNewDefaultHeaders, []);
+
+var client = Dynatrace().createHttpClient(client: myClient, options: _options);
+DynatraceRootAction webAction =
+        Dynatrace().enterAction('Button Click');
+try {
+  await client.post(Uri.parse('https://dynatrace.com'));
+} catch (error) {
+  // insert error handling here
+} finally {
+  webAction.leaveAction();
+  client.close();
+}
+</code></pre>
+<p><img src="https://dt-cdn.net/images/httpbytesflutter-800-f974bd74f6.png" alt="httpBytesFlutter"></p>
+<h3 id="manual-web-request-monitoring" class="hash-header">Manual Web Request Monitoring <a href="#manual-web-request-monitoring" class="hash-link">#</a></h3>
+<p>You can manually tag and time your web requests. With the API shown below, you are able to manually capture the web requests of another http framework or override the web request tag (x-dynatrace header value) and add the web request to a specific user action. If you are interested in a more automatic approach, please check out our <a href="#using-dynatracehttpclient">Using DynatraceHttpClient</a> section.</p>
+<p><strong>Note:</strong>
+You should not manually instrument and use our <a href="#instrumenting-web-requests-from-darts-http-package">Dynatrace HttpClient</a> for the same web requests. This behavior can lead to incorrect monitoring data.</p>
+<p>How to manually instrument http requests:</p>
+<pre><code class="language-dart">// DynatraceRootAction and DynatraceAction
+Future&lt;WebRequestTiming&gt; createWebRequestTiming(String url);
+Future&lt;String&gt; getRequestTag(String url);
+String getRequestTagHeader();
+</code></pre>
+<pre><code class="language-dart">// WebRequestTiming
+void startWebRequestTiming();
+void stopWebRequestTiming(int responseCode, String? responseMessage);
+void stopWebRequestTimingWithSize(int responseCode, String? responseMessage, int requestSize, int responseSize);
+String getRequestTag();
+String getRequestTagHeader();
+</code></pre>
+<p>Example using full manual instrumentation of a web request:</p>
+<pre><code class="language-dart">// From dart:io
+HttpClient client = HttpClient();
+// Create an action
+DynatraceRootAction action =
+        Dynatrace().enterAction('MyButton tapped - Web Action');
+
+// Create a timing object
+String url = 'https://dynatrace.com';
+WebRequestTiming timing = await action.createWebRequestTiming(url);
+
+final request = await client.getUrl(Uri.parse(url));
+
+if(timing.getRequestTag() != ''){
+  // Add headers to the request
+  request.headers.set(timing.getRequestTagHeader(), timing.getRequestTag());
+
+  // Start timing the web request
+  timing.startWebRequestTiming();
+  final response = await request.close();
+
+  // Stop timing
+  timing.stopWebRequestTiming(response.statusCode, response.reasonPhrase);
+}
+
+// Leave the action
+action.leaveAction();
+</code></pre>
+<p>Overriding the web request tag (x-dynatrace header value) to add the web request to a specific user action:</p>
+<pre><code class="language-dart">// From dart:io
+HttpClient client = HttpClient();
+// Create an action
+DynatraceRootAction action =
+        Dynatrace().enterAction('MyButton tapped - Web Action');
+
+String url = 'https://dynatrace.com';
+final request = await client.getUrl(Uri.parse(url));
+
+// Add headers to the request
+request.headers.set(action.getRequestTagHeader(), await action.getRequestTag(url));
+
+final response = await request.close();
+
+// Leave the action
+action.leaveAction();
+</code></pre>
+<h3 id="url-exclusion-list" class="hash-header">URL exclusion list <a href="#url-exclusion-list" class="hash-link">#</a></h3>
+<p>You can set a list of URLs which need to be excluded from web request tracking:</p>
+<pre><code class="language-dart">DynatraceHttpClientOptions _options = DynatraceHttpClientOptions({}, ['url-to-exclude.com']);
+</code></pre>
+<h3 id="identify-a-user" class="hash-header">Identify a user <a href="#identify-a-user" class="hash-link">#</a></h3>
+<p>You can identify a user and tag the current session with a name by making the following call:</p>
+<pre><code class="language-dart">Dynatrace().identifyUser('User XY');
+</code></pre>
+<p><img src="https://dt-cdn.net/images/fluttertag-800-2eefbf54bc.png" alt="flutterTag"></p>
+<h3 id="capturing-zone-errors-when-using-startwithoutwidget" class="hash-header">Capturing Zone Errors when using startWithoutWidget <a href="#capturing-zone-errors-when-using-startwithoutwidget" class="hash-link">#</a></h3>
+<p>When using the <code>startWithoutWidget</code> method to start the Dynatrace plugin, zone errors are not caught out of the box and need to be manually added. Here is an example of how you would set this up:</p>
+<pre><code class="language-dart">runZonedGuarded&lt;Future&lt;void&gt;&gt;(() async {
+  await Dynatrace().startWithoutWidget();
+  runApp(MyApp());
+}, Dynatrace().reportZoneStacktrace);
+</code></pre>
+<h3 id="crash-reporting" class="hash-header">Crash reporting <a href="#crash-reporting" class="hash-link">#</a></h3>
+<p>Crash reporting is enabled by default. Mobile OneAgent captures all unhandled exceptions and errors, and then, it immediately sends the error report to the server. To change this behavior via the API, enable <a href="#user-opt-in-mode">user opt-in</a> and set the <a href="#user-privacy-options">user privacy options</a>.</p>
+<p>To report a crash manually, use the following API on a <code>Dynatrace()</code> instance:</p>
+<hr>
+<pre><code class="language-dart">Future&lt;void&gt; reportZoneStacktrace(dynamic error, StackTrace stacktrace);
+Future&lt;void&gt; reportCrash(String errorName, String errorMessage, String stacktrace, {Platform platform});
+Future&lt;void&gt; reportCrashWithException(String crashName, Exception exceptionObject, {String? reason, Platform? platform, StackTrace? stacktrace});
+</code></pre>
+<hr>
+<br>
+Examples for the parameters are:
+<hr>
+<pre><code class="language-dart">try {
+  throw Exception('Something went wrong!');
+} catch (exception, stacktrace) {
+  await Dynatrace().reportZoneStacktrace(exception, stacktrace);
+}
+</code></pre>
+<p><img src="https://dt-cdn.net/images/reportzone-800-3d27c2764a.png" alt="reportZone">
+<br></p>
+<h4 id="report-crashes-from-non-main-isolates">Report crashes from non main Isolates</h4>
+<p>Dart Isolates run independently, each with its own memory heap and event loop. To capture errors from a spawned isolate, an error listener must be set up on the spawning isolate's <code>onError</code> <code>ReceivePort</code>.</p>
+<pre><code class="language-dart">
+await Isolate.spawn(
+    (message){/*Do work*/},
+    null,
+    onError: DynatraceIsolateErrorReceivePort().sendPort,
+ );
+</code></pre>
+<p>There is also an extension function available to attach an error listener. But be aware, that errors happening before the listener was attached will not be reported!</p>
+<pre><code class="language-dart">final isolate = await Isolate.spawn((message){/*Do work*/}, null);
+isolate.addDynatraceErrorListener();
+</code></pre>
+<h3 id="user-privacy-options" class="hash-header">User Privacy Options <a href="#user-privacy-options" class="hash-link">#</a></h3>
+<p>If you want to use the user privacy options you need to enable the <a href="#user-opt-in-mode">user opt-in</a>. By default, crash reporting is deactivated and the data-collection level is set to off, when enabling user opt-in mode. Based on your user's individual preferences, you can change the privacy settings when the app starts for the first time. Dynatrace doesn't provide a privacy dialog or any similar UI component. You must integrate the consent banner into your app. You must also allow your users to change their privacy settings in the future.</p>
+<p>The API to get and set the current user privacy options looks like this:</p>
+<pre><code class="language-dart">Future&lt;UserPrivacyOptions&gt; getUserPrivacyOptions({Platform? platform});
+void applyUserPrivacyOptions(DataCollectionLevel dataCollectionLevel, bool crashReportingOptedIn, {Platform? platform});
+</code></pre>
+<p>The privacy API methods allow you to dynamically change the data-collection level based on the individual preferences of your end users. crashReportingOptedIn enables or disables the crash reporting. dataCollectionLevel can be selected from three data-privacy levels:</p>
+<pre><code class="language-dart">enum DataCollectionLevel {
+    Off,
+    Performance,
+    UserBehavior
+}
+</code></pre>
+<ul>
+<li>Off: Mobile OneAgent doesn't capture any monitoring data.</li>
+<li>Performance: Mobile OneAgent captures only anonymous performance data. Monitoring data that can be used to identify individual users, such as user tags and custom values, isn't captured.</li>
+<li>UserBehavior: Mobile OneAgent captures both performance and user data. In this mode, Mobile OneAgent recognizes and reports users who re-visit in future sessions.</li>
+</ul>
+<p>A call to enable monitoring might look like the following:</p>
+<pre><code class="language-dart">Dynatrace().applyUserPrivacyOptions(UserPrivacyOptions(DataCollectionLevel.UserBehavior, true));
+</code></pre>
+<h3 id="report-gps-location" class="hash-header">Report GPS location <a href="#report-gps-location" class="hash-link">#</a></h3>
+<p>You can report latitude and longitude and specify an optional platform. These coordinates will be used to have Dynatrace calculate the city that is closest to the reported GPS location.</p>
+<p>To manually set the coordinates of the user:</p>
+<pre><code class="language-dart">void setGPSLocation(double latitude, double longitude, {Platform? platform});
+</code></pre>
+<p>For automatic capturing of GPS coordinates please see the platform specific sections below:</p>
+<p><strong>Android:</strong><br>
+If set to true, auto-instrumentation instruments your <em>LocationListener</em> classes and sends the captured location as metric to the server. The default value is false. To enable this feature to automatically capture location if your application gathers location based on <em>LocationListener</em> use the configuration shown <a href="https://www.dynatrace.com/support/help/shortlink/dynatrace-android-gradle-plugin-monitoring#location-monitoring" rel="ugc">here.</a>
+<a href="https://www.dynatrace.com/support/help/technology-support/operating-systems/android/legacy-documentation/customization/advanced-settings-for-android-auto-instrumentation/#expand-3762auto-instrumentation-properties" rel="ugc">https://www.dynatrace.com/support/help/technology-support/operating-systems/android/legacy-documentation/customization/advanced-settings-for-android-auto-instrumentation/#expand-3762auto-instrumentation-properties</a></p>
+<p><strong>iOS:</strong><br>
+Captures the location only if the app uses <em>CLLocationManager</em> and sends the captured location as a metric to the server. The OneAgent SDK for iOS doesn't perform GPS location capturing on its own; it only captures three fractional digits to protect the privacy of the end user. Set the value to false to disable location capturing. The default value is true.
+<a href="https://www.dynatrace.com/support/help/technology-support/operating-systems/ios/customization/configuration-settings/#expand-3708configuration-keys" rel="ugc">https://www.dynatrace.com/support/help/technology-support/operating-systems/ios/customization/configuration-settings/#expand-3708configuration-keys</a></p>
+<p><strong>Note:</strong>
+When location monitoring is disabled or no location information is available, Dynatrace uses IP addresses to determine the location of the user. For more information, click <a href="https://www.dynatrace.com/support/help/shortlink/detection#geolocations" rel="ugc">here.</a></p>
+<h3 id="business-events-capturing" class="hash-header">Business events capturing <a href="#business-events-capturing" class="hash-link">#</a></h3>
+<p>With <code>sendBizEvent</code>, you can report business events. These events are standalone events, as OneAgent sends them detached from user actions or user sessions.</p>
+<p>For more information on business events, see <a href="https://www.dynatrace.com/support/help/how-to-use-dynatrace/business-analytics/ba-events-capturing#expand--example-configuration-files-for-rum--2" rel="ugc">dynatrace documentation</a>.</p>
+<pre><code class="language-dart">Dynatrace().sendBizEvent('com.easytravel.funnel.booking-finished', {
+  'event.name' : 'Confirmed Booking',
+  'screen': 'booking-confirmation',
+  'product': 'Danube Anna Hotel',
+  'amount': 358.35,
+  'currency': 'USD',
+  'reviewScore': 4.8,
+  'arrivalDate': '2022-11-05',
+  'departureDate': '2022-11-15',
+  'journeyDuration': 10,
+  'adultTravelers': 2,
+  'childrenTravelers': 0
+});
+</code></pre>
+<p><img src="https://dt-cdn.net/images/flutterbiz-800-187a939201.png" alt="flutterBiz"></p>
+<h3 id="platform-independent-reporting" class="hash-header">Platform independent reporting <a href="#platform-independent-reporting" class="hash-link">#</a></h3>
+<p>Each method has an additional optional parameter named <code>platform</code> of type <code>Platform</code>. Use this parameter to only trigger manual instrumentation for a specific OS. The available values are: <code>Platform.iOS</code> and <code>Platform.Android</code>. By default, it will work on any platform. Otherwise it is passed only to the relevant OS. For example:</p>
+<ul>
+<li>Passing to <strong>iOS</strong> only:</li>
+</ul>
+<pre><code class="language-dart">DynatraceAction myAction = Dynatrace().enterAction('MyButton tapped', platform: Platform.iOS);
+//Perform the action and whatever else is needed.
+myAction.leaveAction();
+</code></pre>
+<ul>
+<li>Passing to <strong>Android</strong> only:</li>
+</ul>
+<pre><code class="language-dart">DynatraceAction myAction = Dynatrace().enterAction('MyButton tapped', platform: Platform.Android);
+//Perform the action and whatever else is needed.
+myAction.leaveAction();
+</code></pre>
+<ul>
+<li>Passing to <strong>both</strong>:</li>
+</ul>
+<pre><code class="language-dart">DynatraceAction myAction = Dynatrace().enterAction('MyButton tapped');
+//Perform the action and whatever else is needed.
+myAction.leaveAction();
+</code></pre>
+<h2 id="new-rum-experience" class="hash-header">New RUM experience <a href="#new-rum-experience" class="hash-link">#</a></h2>
+<p>The New RUM Experience introduces a set of advanced APIs that allow you to send custom events, modify event data, and track views in your Flutter application. These APIs provide more granular control over the data captured by Dynatrace.</p>
+<p>For more detailed information about the New RUM Experience, see the <a href="https://docs.dynatrace.com/docs/shortlink/new-rum-experience" rel="ugc">official Dynatrace documentation</a>.</p>
+<h3 id="send-event" class="hash-header">Send Event <a href="#send-event" class="hash-link">#</a></h3>
+<p>The <code>sendEvent()</code> method allows you to send custom events with arbitrary properties. This is useful for tracking specific user interactions or application state changes.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Send a custom event with properties via constructor
+Dynatrace().sendEvent(EventData(
+  duration: 250,
+  eventProperties: {
+    'event_properties.checkout_step': 'payment_confirmed',
+    'event_properties.cart_value': 149.99,
+    'event_properties.payment_method': 'credit_card',
+    'event_properties.item_count': 3,
+  },
+));
+
+// Or use cascade notation to add properties
+Dynatrace().sendEvent(EventData(duration: 250)
+  ..addEventProperty('event_properties.checkout_step', 'payment_confirmed')
+  ..addEventProperty('event_properties.cart_value', 149.99)
+  ..addEventProperty('event_properties.payment_method', 'credit_card')
+  ..addEventProperty('event_properties.item_count', 3));
+</code></pre>
+<p><strong>Field naming rules:</strong></p>
+<ul>
+<li>Only event properties prefixed with <code>event_properties.</code> are allowed</li>
+<li>Field names must contain only alphabetic characters, numbers, underscores, and dots</li>
+<li>Each dot must be followed by an alphabetic character</li>
+<li>Each underscore must be followed by an alphabetic character or number</li>
+<li>Values must be primitive types (String, int, double, bool)</li>
+<li>The <code>duration</code> property is optional and defaults to <code>0</code> if not specified</li>
+</ul>
+<p><strong>Property limits:</strong></p>
+<ul>
+<li>Maximum of 50 event properties per event</li>
+<li>If more than 50 properties are added, they are sorted alphabetically by key and only the first 50 are retained</li>
+<li>The <code>dt.support.api.has_dropped_custom_properties</code> flag will be set to <code>true</code> when properties are dropped</li>
+</ul>
+<h3 id="send-session-property-event" class="hash-header">Send Session Property Event <a href="#send-session-property-event" class="hash-link">#</a></h3>
+<p>Session properties apply to all events within the current session. Use <code>sendSessionPropertiesEvent()</code> to set properties that should be available across the entire user session.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Set session-wide properties via constructor
+Dynatrace().sendSessionPropertyEvent(SessionPropertyEventData(
+  sessionProperties: {
+    'session_properties.product_tier': 'premium',
+    'session_properties.loyalty_status': 'gold',
+  },
+));
+
+// Or use cascade notation to add properties
+Dynatrace().sendSessionPropertyEvent(SessionPropertyEventData()
+  ..addSessionProperty('session_properties.product_tier', 'premium')
+  ..addSessionProperty('session_properties.loyalty_status', 'gold'));
+</code></pre>
+<p><strong>Important notes:</strong></p>
+<ul>
+<li>Session properties persist throughout the entire session</li>
+<li>If you send the same property multiple times, only one value will be kept (first or last)</li>
+<li>Use session properties for data that applies to the entire user session</li>
+<li>Field naming follows the same rules as events, but with <code>session_properties.</code> prefix</li>
+<li>The <code>duration</code> property is optional and defaults to <code>0</code> if not specified</li>
+</ul>
+<p><strong>Property limits:</strong></p>
+<ul>
+<li>Maximum of 50 session properties per event</li>
+<li>If more than 50 properties are added, they are sorted alphabetically by key and only the first 50 are retained</li>
+<li>The <code>dt.support.api.has_dropped_custom_properties</code> flag will be set to <code>true</code> when properties are dropped</li>
+</ul>
+<h3 id="event-modifier" class="hash-header">Event Modifier <a href="#event-modifier" class="hash-link">#</a></h3>
+<p>Event modifiers allow you to intercept and modify events before they are sent to Dynatrace. This is useful for adding common properties, filtering sensitive data, or enriching events with additional context. Event modifiers apply to all event types, including custom events, session properties, exceptions, and HTTP events.</p>
+<p>If multiple event modifiers are added, they are executed in the order they were added.</p>
+<p>Most fields and namespaces can't be modified in any way (added, removed or overridden), while others are open for modification.</p>
+<p><strong>Open for modification and can be added:</strong></p>
+<ul>
+<li><code>event_properties.*</code></li>
+<li><code>session_properties.*</code></li>
+</ul>
+<p><code>session_properties.*</code> are only allowed to be on a session property event.</p>
+<p><strong>Open for modification only:</strong></p>
+<ul>
+<li><code>url.full</code></li>
+<li><code>exception.stack_trace</code></li>
+</ul>
+<h4 id="example">Example</h4>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Define the modifier function
+Map&lt;String, dynamic&gt;? myModifier(Map&lt;String, dynamic&gt; event) {
+  // Add A/B test context to all events
+  event['event_properties.experiment_id'] = 'checkout_flow_v2';
+  event['event_properties.variant'] = 'treatment_a';
+
+  // Redact sensitive information
+  if (event.containsKey('event_properties.card_number')) {
+    event.remove('event_properties.card_number');
+  }
+  
+  // Return null to discard the event entirely
+  if (event['event_properties.ignore'] == true) {
+    return null;
+  }
+  
+  return event;
+}
+
+// Add the modifier
+Dynatrace().addEventModifier(myModifier);
+</code></pre>
+<h4 id="using-event-modifiers">Using Event Modifiers</h4>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void setupEventModifiers() {
+  // Add the modifier before sending events 
+  Dynatrace().addEventModifier((event) {
+    // Add A/B test context to all events
+    event['event_properties.experiment_id'] = 'checkout_flow_v2';
+    event['event_properties.variant'] = 'treatment_a';
+    
+    return event;
+  });
+  
+  // Now send events - they will be modified by the modifier
+  Dynatrace().sendEvent(EventData(duration: 250)
+    ..addEventProperty('event_properties.checkout_step', 'add_to_cart'));
+}
+</code></pre>
+<h4 id="removing-event-modifiers">Removing Event Modifiers</h4>
+<p>When you no longer need a modifier, you can remove it:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Define the modifier
+Map&lt;String, dynamic&gt;? myModifier(Map&lt;String, dynamic&gt; event) {
+  event['event_properties.experiment_id'] = 'checkout_flow_v2';
+  return event;
+}
+
+// Add the modifier
+Dynatrace().addEventModifier(myModifier);
+
+// Remove it when no longer needed
+Dynatrace().removeEventModifier(myModifier);
+</code></pre>
+<h4 id="modifier-parameters">Modifier Parameters</h4>
+<p>The event modifier function receives one parameter:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td><code>Map&lt;String, dynamic&gt;</code></td>
+<td>The event data to be modified. Contains various fields depending on the event type (e.g., <code>event_properties.*</code>, <code>session_properties.*</code>, <code>duration</code>, etc.)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="important-considerations">Important Considerations</h4>
+<ul>
+<li><strong>Execution order</strong>: If multiple event modifiers are added, they are executed in the order they were added</li>
+<li><strong>Returning null</strong>: Returning <code>null</code> discards the event and prevents future modifier functions from being executed</li>
+<li><strong>Performance</strong>: Event modifiers should be efficient as they are called for every event</li>
+<li><strong>Field naming</strong>: Custom properties must follow the <code>event_properties.*</code> or <code>session_properties.*</code> prefix naming convention</li>
+<li><strong>Reserved fields</strong>: Certain reserved fields and namespaces cannot be modified. Attempts to modify them will be ignored</li>
+<li><strong>Error handling</strong>: If a modifier throws an exception, it will be logged but won't prevent other modifiers from executing</li>
+<li><strong>Primitive values</strong>: Event fields can only contain primitive values (String, int, double, bool)</li>
+</ul>
+<h3 id="http-event-modifier" class="hash-header">HTTP Event Modifier <a href="#http-event-modifier" class="hash-link">#</a></h3>
+<p>HTTP event modifiers allow to modify HTTP events before they are sent to Dynatrace. They work with events automatically captured by our <a href="#instrumenting-web-requests-from-darts-http-package">instrumentation</a> of Dart's <code>http</code> package and do not apply to manually reported HTTP events.</p>
+<p>HTTP events can also be modified via the <a href="#event-modifier">general event modifier api</a> but the http event modifier provides additional parameters to access the http request and response details.</p>
+<p>Modifier Order:</p>
+<ol>
+<li>General Event Modifier</li>
+<li>Http Event Modifier</li>
+</ol>
+<p>Common use cases include:</p>
+<ul>
+<li>Adding custom properties to HTTP events</li>
+<li>Redacting sensitive information from URLs or headers</li>
+<li>Filtering out specific HTTP requests</li>
+<li>Enriching events with additional context</li>
+</ul>
+<h4 id="creating-an-http-event-modifier">Creating an HTTP Event Modifier</h4>
+<p>An HTTP event modifier is a function that receives the event data along with the HTTP request and response details, and returns either a modified event or <code>null</code> to discard it.</p>
+<p>Most fields and namespaces can't be modified in any way (added, removed or overridden), while others are open for modification.</p>
+<p><strong>Open for modification and can be added:</strong></p>
+<ul>
+<li><code>event_properties.*</code></li>
+</ul>
+<p><strong>Open for modification only:</strong></p>
+<ul>
+<li><code>url.full</code></li>
+<li><code>exception.stack_trace</code></li>
+</ul>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/http.dart';
+
+// Add modifier
+Dynatrace().addHttpEventModifier((event, request, response, error, stackTrace) {
+  // Add custom properties to all HTTP events
+  event['event_properties.api_version'] = 'v2';
+  event['event_properties.request_source'] = 'mobile_app';
+  
+  // Redact user IDs from URLs for privacy
+  // Example: https://api.example.com/users/abc123/profile -&gt; https://api.example.com/users/{id}/profile
+  if (event.containsKey('url.full')) {
+  event['url.full'] = event['url.full']
+          .toString()
+          .replaceAll(RegExp(r'/users/\w+/'), '/users/{id}/');
+  }
+  
+  // Filter out health check requests
+  if (request.url.path.contains('/health')) {
+  return null; // Discard this event
+  }
+  
+  // Access response details
+  if (response != null) {
+  event['event_properties.response_length'] = response.contentLength ?? 0;
+  }
+  
+  return event;
+});
+// Send request which will trigger the modifier
+var client = Dynatrace().createHttpClient();
+client.get(Uri.parse('https://dynatrace.com'));
+</code></pre>
+<h4 id="removing-http-event-modifiers">Removing HTTP Event Modifiers</h4>
+<p>When you no longer need a modifier, you can remove it:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'package:http/http.dart';
+// Define the modifier
+Map&lt;String, dynamic&gt; myModifier(
+        Map&lt;String, dynamic&gt; event, BaseRequest request, BaseResponse? response, dynamic error, StackTrace? stackTrace) {
+  event['event_properties.custom_field'] = 'value';
+  return event;
+}
+
+// Add the modifier
+Dynatrace().addHttpEventModifier(myModifier);
+
+// Remove it when no longer needed
+Dynatrace().removeHttpEventModifier(myModifier);
+</code></pre>
+<h4 id="modifier-parameters-2">Modifier Parameters</h4>
+<p>The HTTP event modifier function receives five parameters:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td><code>Map&lt;String, dynamic&gt;</code></td>
+<td>The HTTP event data to be modified. Contains fields like <code>url.full</code>, <code>http.request.method</code>, <code>http.response.status_code</code>, etc.</td>
+</tr>
+<tr>
+<td><code>request</code></td>
+<td><code>BaseRequest</code></td>
+<td>The HTTP request object with details like method, URL, headers, and body</td>
+</tr>
+<tr>
+<td><code>response</code></td>
+<td><code>BaseResponse?</code></td>
+<td>The HTTP response object (null if the request failed before receiving a response)</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td><code>dynamic</code></td>
+<td>Any error that occurred during the request (null for successful requests)</td>
+</tr>
+<tr>
+<td><code>stackTrace</code></td>
+<td><code>StackTrace?</code></td>
+<td>The stack trace associated with an error (null for successful requests)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="important-considerations-2">Important Considerations</h4>
+<ul>
+<li><strong>Execution order</strong>: Modifiers are executed in the order they were added</li>
+<li><strong>Returning null</strong>: If a modifier returns <code>null</code>, the event is discarded and subsequent modifiers won't be called</li>
+<li><strong>Performance</strong>: Modifiers should be efficient as they are called for every HTTP request</li>
+<li><strong>Field naming</strong>: Custom properties must follow the <code>event_properties.</code> prefix naming convention</li>
+<li><strong>Reserved fields</strong>: Certain core fields cannot be modified (refer to Dynatrace documentation for details)</li>
+<li><strong>Error handling</strong>: If a modifier throws an exception, it will be logged but won't prevent other modifiers from executing</li>
+<li><strong>Primitive values</strong>: Event fields can only contain primitive values (String, int, double, bool)</li>
+</ul>
+<h3 id="send-exception-event" class="hash-header">Send Exception Event <a href="#send-exception-event" class="hash-link">#</a></h3>
+<p>The <code>sendExceptionEvent()</code> method provides a structured way to report exceptions with additional context and custom properties.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+try {
+  // Code that might throw an exception
+  // riskyOperation();
+} catch (exception, stacktrace) {
+  // Using constructor parameters
+  Dynatrace().sendExceptionEvent(
+    ExceptionEventData(
+      exception,
+      stackTrace: stacktrace,
+      eventProperties: {
+        'event_properties.operation_type': 'data_sync',
+        'event_properties.retry_count': 3,
+      },
+    ),
+  );
+}
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li>Constructor takes the exception or error object (required)</li>
+<li><code>stackTrace</code>: Sets the stack trace (optional but recommended)</li>
+<li><code>eventProperties</code>: Map of custom properties (optional)</li>
+<li><code>addEventProperty()</code>: Adds custom properties following the same naming rules as other events</li>
+</ul>
+<h3 id="send-http-request-event" class="hash-header">Send HTTP Request Event <a href="#send-http-request-event" class="hash-link">#</a></h3>
+<p>The <code>sendHttpRequestEvent()</code> method allows you to manually report HTTP request events with detailed information about the request and response.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Using constructor parameters
+final event = HttpRequestEventData(
+  url: 'https://api.example.com/users',
+  method: 'POST',
+  statusCode: 201,
+  bytesSent: 1024,
+  bytesReceived: 2048,
+  duration: 250, // in milliseconds
+  eventProperties: {
+    'event_properties.api_version': 'v2',
+    'event_properties.endpoint_type': 'user_creation',
+  },
+);
+Dynatrace().sendHttpRequestEvent(event);
+
+// Or use cascade notation to add event properties
+final eventWithCascade = HttpRequestEventData(
+  url: 'https://api.example.com/users',
+  method: 'POST',
+  statusCode: 201,
+  duration: 250,
+)
+  ..addEventProperty('event_properties.api_version', 'v2')
+  ..addEventProperty('event_properties.endpoint_type', 'user_creation');
+Dynatrace().sendHttpRequestEvent(eventWithCascade);
+</code></pre>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li>Manual instrumentation of HTTP libraries not supported by <code>DynatraceHttpClient</code></li>
+<li>Adding custom context to HTTP requests</li>
+<li>Reporting synthetic or derived HTTP metrics</li>
+</ul>
+<h3 id="view-monitoring" class="hash-header">View Monitoring <a href="#view-monitoring" class="hash-link">#</a></h3>
+<p>The view monitoring APIs allow you to track different screens or views in your application, providing context for all events happening within those views.</p>
+<h4 id="start-view">Start View</h4>
+<p>Use <code>startView()</code> to begin monitoring a specific view or screen. When a view is started, all subsequent events will be associated with that view context.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Start monitoring a view
+Dynatrace().startView('UserProfile');
+</code></pre>
+<h3 id="view-detection" class="hash-header">View Detection <a href="#view-detection" class="hash-link">#</a></h3>
+<p>Integrated view (screen) detection with <code>WidgetViewBinding</code>.</p>
+<p>Use cases:</p>
+<ul>
+<li>Associate events with a specific screen/view context</li>
+<li>Automatic view lifecycle tracking when navigating in Flutter</li>
+<li>Manual control for custom or non-standard navigation flows</li>
+</ul>
+<h3 id="manual-view-detection" class="hash-header">Manual View Detection <a href="#manual-view-detection" class="hash-link">#</a></h3>
+<p>You can start views explicitly:</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void onEnterProfile() {
+  Dynatrace().startView('UserProfile');
+}
+</code></pre>
+<p>Guidelines:</p>
+<ul>
+<li>Keep view names consistent and human-readable</li>
+<li>Only one active view at a time; starting a new view stops the previous one</li>
+</ul>
+<h3 id="automatic-view-detection" class="hash-header">Automatic View Detection <a href="#automatic-view-detection" class="hash-link">#</a></h3>
+<p><code>WidgetViewBinding</code> links common navigation/widget lifecycles to ViewEvent automatically. When enabled, view start/stop is performed as you navigate between screens (e.g., using <code>Navigator</code> or routing libraries). This reduces boilerplate and ensures consistent context on events.</p>
+<p>Key points:</p>
+<ul>
+<li>Automatic view start/stop on route changes</li>
+<li>Works alongside manual control; manual calls override the current view</li>
+<li>Avoid duplicating calls if you already rely on the binding</li>
+<li><strong>Widget-based navigation support:</strong> When navigating without a named route (e.g., <code>Navigator.push()</code> with <code>MaterialPageRoute</code> or <code>CupertinoPageRoute</code>), the view name is automatically derived from the widget's <code>runtimeType</code>. For example, pushing <code>MaterialPageRoute(builder: (_) =&gt; ProfilePage())</code> will report the view name as <code>"ProfilePage"</code>.</li>
+</ul>
+<p>How to enable automatic view detection:</p>
+<pre><code class="language-dart">MaterialApp(
+  home: MyApp(),
+  navigatorObservers: [
+    // Enables automatic view lifecycle tracking via WidgetViewBinding
+    DynatraceNavigationObserver(),
+  ],
+);
+</code></pre>
+<p>With this integration, most navigation flows will automatically emit ViewEvent start without extra code, while still allowing manual <code>startView</code> when needed.</p>
+<h4 id="how-widget-based-view-names-are-derived">How widget-based view names are derived</h4>
+<p>When a route has no explicit name (<code>route.settings.name</code> is null or empty), the observer checks whether the route is a <code>MaterialPageRoute</code> or <code>CupertinoPageRoute</code> — both of which expose a public <code>builder</code> field. It calls the builder to obtain the page widget and uses the widget's <code>runtimeType</code> as the view name.</p>
+<p>For example:</p>
+<pre><code class="language-dart">// skip analysis
+// This will be reported as view name "MyDashboard"
+Navigator.push(context, MaterialPageRoute(builder: (_) =&gt; const MyDashboard()));
+
+// This will be reported as view name "OrderDetail"
+Navigator.push(context, CupertinoPageRoute(builder: (_) =&gt; OrderDetail(id: 42)));
+</code></pre>
+<p><strong>Important considerations:</strong></p>
+<ul>
+<li>Only one view can be active at a time. Starting a new view will automatically stop the previous one</li>
+<li>View names should be meaningful and consistent across your application</li>
+<li>Empty or null view names will be ignored</li>
+<li>All events captured after starting a view will include the view context</li>
+<li><strong>Using named routes is strongly recommended</strong> for the most reliable and predictable view tracking. Named routes provide explicit, human-readable view names that are easy to recognize in Dynatrace dashboards. Widget-based name derivation is a best-effort fallback — it relies on the widget's <code>runtimeType</code>, which may produce less readable names (e.g., generic or generated class names). Always prefer <code>RouteSettings(name: 'MyScreen')</code> or named route tables when possible. This functionality will not work with obfuscated builds.</li>
+</ul>
+<h3 id="user-interaction-tracking" class="hash-header">User Interaction Tracking <a href="#user-interaction-tracking" class="hash-link">#</a></h3>
+<p>The Dynatrace Flutter plugin can automatically capture user touch interactions, reporting which widget was tapped, its position in the widget hierarchy, and any associated text labels.</p>
+<p>When enabled, each tap interaction produces an event containing:</p>
+<ul>
+<li><strong>Widget path</strong> — a concise hierarchical path of the tapped widget (e.g., <code>Column/Card/ElevatedButton</code>)</li>
+<li><strong>Responder</strong> — the nearest interactive widget (button) that handles the tap</li>
+<li><strong>Label</strong> — the text or semantic label associated with the widget (e.g., button text)</li>
+<li><strong>Touch position</strong> — the coordinates of the tap</li>
+</ul>
+<h4 id="how-it-works">How it works</h4>
+<ol>
+<li>The plugin wraps your app in a root <code>Listener</code> widget that intercepts all <code>pointerUp</code> events</li>
+<li>On each tap, Flutter's hit test determines which widgets are under the touch point</li>
+<li>A depth-first traversal of the widget tree identifies the tapped element and the nearest interactive ancestor (button)</li>
+<li>The widget path is built from the widget tree hierarchy and filtered to only include recognized widget types, producing clean, meaningful paths</li>
+<li>Labels are extracted from <code>Text</code>, <code>Semantics</code>, <code>Tooltip</code>, or <code>Icon</code> widgets near the tapped element</li>
+</ol>
+<h4 id="enabling-user-interaction-tracking">Enabling user interaction tracking</h4>
+<p>User interaction tracking is <strong>controlled server-side</strong> via the Dynatrace platform configuration. No code changes are required to enable it — when the feature is activated in your Dynatrace environment, the Flutter plugin automatically starts capturing interactions.</p>
+<h4 id="supported-interactive-widgets">Supported interactive widgets</h4>
+<p>The following widget types are recognized as interactive responders:</p>
+<ul>
+<li><code>ElevatedButton</code>, <code>TextButton</code>, <code>OutlinedButton</code>, <code>FilledButton</code></li>
+<li><code>IconButton</code>, <code>FloatingActionButton</code></li>
+<li><code>InkWell</code>, <code>GestureDetector</code></li>
+<li><code>ListTile</code>, <code>PopupMenuItem</code>, <code>PopupMenuButton</code></li>
+<li><code>CupertinoButton</code></li>
+<li>Any widget extending <code>ButtonStyleButton</code> or <code>MaterialButton</code></li>
+</ul>
+<h3 id="userinteractionwidget" class="hash-header">UserInteractionWidget <a href="#userinteractionwidget" class="hash-link">#</a></h3>
+<p><code>UserInteractionWidget</code> allows you to customize how widgets appear in session replay recordings. It provides two capabilities:</p>
+<h4 id="custom-naming">Custom naming</h4>
+<p>Use <code>customName</code> to override a widget's <code>detected_name</code>. This makes interaction events more readable in Dynatrace dashboards.</p>
+<pre><code class="language-dart">import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+// Instead of showing "ElevatedButton" as detected_name,
+// this will show "LoginButton"
+UserInteractionWidget(
+  customName: 'LoginButton',
+  child: ElevatedButton(
+    onPressed: () { /* handle login */ },
+    child: const Text('Log In'),
+  ),
+)
+</code></pre>
+<p>You can apply custom names at multiple levels:</p>
+<pre><code class="language-dart">UserInteractionWidget(
+  customName: 'LoginForm',
+  child: Card(
+    child: Column(
+      children: [
+        UserInteractionWidget(
+          customName: 'EmailInput',
+          child: TextField(
+            decoration: InputDecoration(labelText: 'Email'),
+          ),
+        ),
+        UserInteractionWidget(
+          customName: 'PasswordInput',
+          child: TextField(
+            decoration: InputDecoration(labelText: 'Password'),
+          ),
+        ),
+        UserInteractionWidget(
+          customName: 'SubmitButton',
+          child: ElevatedButton(
+            onPressed: () {},
+            child: const Text('Sign In'),
+          ),
+        ),
+      ],
+    ),
+  ),
+)
+</code></pre>
+<p>The <code>customName</code> overrides the widget's type name in the <code>detected_name</code> field of the interaction event. It does not change the widget path itself.</p>
+<h4 id="masking">Masking</h4>
+<p>Use <code>masked</code> to mark widgets for masking in session replay. When masked, the widget's content is obscured in recordings and its text labels are hidden in interaction events.</p>
+<pre><code class="language-dart">// Mask sensitive input fields
+UserInteractionWidget(
+  masked: true,
+  child: TextField(
+    decoration: InputDecoration(labelText: 'Credit Card Number'),
+  ),
+)
+</code></pre>
+<p>You can combine both masking and custom naming:</p>
+<pre><code class="language-dart">// Masked with a custom name for clear identification in dashboards
+UserInteractionWidget(
+  masked: true,
+  customName: 'CreditCardInput',
+  child: TextField(
+    decoration: InputDecoration(labelText: 'Card Number'),
+  ),
+)
+</code></pre>
+<p><strong>Important considerations:</strong></p>
+<ul>
+<li>When neither <code>masked</code> nor <code>customName</code> is set, <code>UserInteractionWidget</code> passes through the child directly with no overhead</li>
+<li>Masking applies to the widget and all its descendants</li>
+<li>For nested <code>UserInteractionWidget</code>s, the nearest ancestor's configuration applies</li>
+<li>Custom names only affect user interaction paths — they do not change view names or other instrumentation</li>
+</ul>
+<h2 id="webrequest-behavior" class="hash-header">Webrequest behavior <a href="#webrequest-behavior" class="hash-link">#</a></h2>
+<p>Currently the Dynatrace Flutter plugin supports the default Dart HTTPClient:</p>
+<pre><code class="language-dart">await HttpClient()
+  .getUrl(Uri.parse('http://TestUrl.com')) 
+  .then((request) =&gt; request.close()) 
+  .then((response) =&gt; print('Request Done'));
+</code></pre>
+<p>This block is the standard implementation for a web request and doesn't need any further modification. It is tracked automatically. The following rules for action linking are applicable:</p>
+<ul>
+<li>Root Action available: When you open a manual <code>DynatraceRootAction</code> before the request because the request is part of some user action, such as clicking a log-in button, the web request is linked to this <code>DynatraceRootAction</code>. If there are several <code>DynatraceRootActions</code> active, the request is linked to the newest one.</li>
+<li>Root Action not available: When you trigger a request and don't have any open <code>DynatraceRootAction</code>, the request is tagged without any action information. The only exception for this tagging is if there are Android or iOS native auto user actions available. In such a case, we take this one for linking. The amount of native auto user actions is rare for Flutter as they are only fired from native components. Therefore, the request usually stands on its own. It is linked to the session but as a root web request. It isn't directly visible in the user session view in the web UI but is associated and visible within the Network performance tile.</li>
+</ul>
+<h2 id="navigation-observer" class="hash-header">Navigation observer <a href="#navigation-observer" class="hash-link">#</a></h2>
+<p>To track navigation events in your application, add <code>DynatraceNavigationObserver</code> to your <code>MaterialApp</code>:</p>
+<pre><code class="language-dart">MaterialApp(
+  home: MyApp(),
+  navigatorObservers: [
+    DynatraceNavigationObserver(),
+  ],
+);
+</code></pre>
+<p><img src="https://dt-cdn.net/images/flutternav-800-9ac79a2396.png" alt="flutterNav"></p>
+<h2 id="go_router" class="hash-header">go_router <a href="#go_router" class="hash-link">#</a></h2>
+<p>To track navigations in your application via go_router, add <code>DynatraceNavigationObserver</code> to your <code>GoRouter</code> observers:</p>
+<pre><code class="language-text">import 'package:go_router/go_router.dart';
+
+final _router = GoRouter(
+  observers: [
+    DynatraceNavigationObserver()
+  ],
+  routes: [
+    GoRoute(
+      // ...
+    )
+  ],
+);
+</code></pre>
+<h2 id="auto-config---custom-arguments" class="hash-header">Auto Config - Custom arguments <a href="#auto-config---custom-arguments" class="hash-link">#</a></h2>
+<p>We provide you with a setup script which automatically adds and configures dynatrace to your android and ios projects.
+This script needs to be executed during the initial setup and every time the <code>dynatrace.config.yaml</code> file changes.
+Our scripts assume that the usual Flutter project structure is standard. The following arguments can be specified for our instrumentation script if the project structure is different.</p>
+<ul>
+<li><code>--help</code>: Show a help message</li>
+<li><code>--debug</code>: Displays more log lines for the instrumentation script. Might be important if you have problems and want to get more information.</li>
+<li><code>--gradle=C:\MyFlutterAndroidProject\build.gradle</code>: The location of the root build.gradle file. We assume that the other gradle file resides in <code>\app\build.gradle</code>. This adds OneAgent dependencies automatically for you and updates the configuration.</li>
+<li><code>--plist=C:\MyFlutterIOSProject\projectName\info.plist</code>: Indicates the location of the <code>info.plist</code> file. The <code>plist</code> file is used for updating the configuration for the OneAgent.</li>
+<li><code>--config=C:\SpecialFolderForDynatrace\dynatrace.config.yaml</code>: Indicates that the config file isn't in the root folder of the Flutter project.</li>
+<li><code>--uninstall</code>: Removes files and references of Dynatrace that were added by our plugin. This includes the removal of the <code>dynatrace.config.yaml</code> file.</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-shell">❯ dart run dynatrace_flutter_plugin --help
+Usage: dart run dynatrace_flutter_plugin [options]
+
+Options:
+  --help                          Show this help message and exit.
+  --debug                         Enable debug mode for detailed logging.
+  --uninstall                     Uninstall the tool.
+  --config="/path/to/dynatrace.config.yaml"
+                                  Specify a custom path to the Dynatrace configuration file.
+                                  Default: project/dynatrace.config.yaml
+  --gradle="/custom/path/to/build.gradle(.kts)"
+                                  Specify a custom path to the top level build.gradle or build.gradle.kts file of your android project.
+                                  Default: Build file in project/android
+  --plist="/custom/path/to/Info.plist"
+                                  Specify a custom path to the Info.plist file.
+                                  Default: project/ios/Runner/Info.plist
+
+Examples:
+  dart run dynatrace_flutter_plugin
+  dart run dynatrace_flutter_plugin --uninstall
+  dart run dynatrace_flutter_plugin --config="/path/to/dynatrace.config.yaml"
+  dart run dynatrace_flutter_plugin --gradle="/custom/path/to/build.gradle.kts"
+  dart run dynatrace_flutter_plugin --plist="/custom/path/to/Info.plist"
+
+</code></pre>
+<h2 id="structure-of-the-dynatraceconfigyaml-file" class="hash-header">Structure of the <code>dynatrace.config.yaml</code> file <a href="#structure-of-the-dynatraceconfigyaml-file" class="hash-link">#</a></h2>
+<p>The configuration is structured in the following way:</p>
+<pre><code class="language-yaml">android:
+  // Configuration for Android auto instrumentation
+
+ios:
+  // Configuration for iOS auto instrumentation
+</code></pre>
+<h3 id="manual-startup-counterparts" class="hash-header">Manual Startup Counterparts <a href="#manual-startup-counterparts" class="hash-link">#</a></h3>
+<p>Here is a list of all the counterparts for the options that can be used with a manual startup. Below the counterparts table you will find an example configuration block for both Android and iOS.</p>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Default</th>
+<th>Android</th>
+<th>iOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reportCrash</td>
+<td>true</td>
+<td>crashReporting</td>
+<td>DTXCrashReportingEnabled</td>
+</tr>
+<tr>
+<td>logLevel</td>
+<td>LogLevel.Info</td>
+<td>debug.agentLogging</td>
+<td>DTXLogLevel</td>
+</tr>
+<tr>
+<td>beaconUrl</td>
+<td>null</td>
+<td>autoStart.beaconUrl</td>
+<td>DTXBeaconURL</td>
+</tr>
+<tr>
+<td>applicationId</td>
+<td>null</td>
+<td>autoStart.applicationId</td>
+<td>DTXApplicationId</td>
+</tr>
+<tr>
+<td>certificateValidation</td>
+<td>false</td>
+<td>debug.certificateValidation</td>
+<td>DTXAllowAnyCert</td>
+</tr>
+<tr>
+<td>userOptIn</td>
+<td>false</td>
+<td>userOptIn</td>
+<td>DTXUserOptIn</td>
+</tr>
+</tbody>
+</table>
+<h3 id="android-block" class="hash-header">Android Block <a href="#android-block" class="hash-link">#</a></h3>
+<p>The Android block is a wrapper for the Android configuration. You can find it under <strong>Mobile app settings</strong> in the web UI. Copy the content into the following block:</p>
+<pre><code class="language-yaml">android:
+  config: "CONTENT_OF_ANDROID_CONFIG"
+</code></pre>
+<p>The content of the <code>config</code> block is directly copied to the gradle file. To know more about the possible configuration options, see the <a href="https://www.dynatrace.com/support/doc/javadoc/oneagent/android/gradle-plugin/dsl/" rel="ugc">DSL documentation</a> of our gradle plugin.</p>
+<p>The following block shows similar properties that can be used with manual startup but are used in auto startup configuration:</p>
+<pre><code class="language-yaml">android:
+  config: "dynatrace {
+      configurations {
+        defaultConfig {
+          autoStart{
+            applicationId 'xxx'
+            beaconUrl 'xxx'
+          }
+          userOptIn false
+          crashReporting true
+          debug.agentLogging true
+          debug.certificateValidation true
+          webRequests.enabled true
+        }
+      }
+    }"
+</code></pre>
+<h3 id="ios-block" class="hash-header">iOS Block <a href="#ios-block" class="hash-link">#</a></h3>
+<p>The iOS block is a wrapper for the iOS configuration. You can find it under <strong>Mobile app settings</strong> in the web UI. Copy the content into the following block:</p>
+<pre><code class="language-yaml">ios:
+  config: "CONTENT_OF_IOS_CONFIG"
+</code></pre>
+<p>The content of the <code>config</code> block is directly copied to the plist file, so you can use all the settings and properties listed in our official <a href="#dynatrace-documentation">iOS Agent documentation</a>.</p>
+<p>The following block shows similar properties that can be used with manual startup but are used in auto startup configuration:</p>
+<pre><code class="language-xml">ios:
+  config: "
+    &lt;key&gt;DTXBeaconURL&lt;/key&gt;
+    &lt;string&gt;xxx&lt;/string&gt;
+    &lt;key&gt;DTXApplicationId&lt;/key&gt;
+    &lt;string&gt;xxx&lt;/string&gt;
+    &lt;key&gt;DTXLogLevel&lt;/key&gt;
+    &lt;string&gt;ALL&lt;/string&gt;
+    &lt;key&gt;DTXUserOptIn&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;DTXCrashReportingEnabled&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;DTXAllowAnyCert&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;DTXInstrumentWebRequestTiming&lt;/key&gt;
+    &lt;false/&gt;"
+</code></pre>
+<h2 id="define-build-stages-in-dynatraceconfigyaml" class="hash-header">Define build stages in <code>dynatrace.config.yaml</code> <a href="#define-build-stages-in-dynatraceconfigyaml" class="hash-link">#</a></h2>
+<p>If you have several stages like debug, QA, and production, use a different configuration to separate them and have each stage report into different applications in the web UI.</p>
+<h3 id="android" class="hash-header">Android <a href="#android" class="hash-link">#</a></h3>
+<p>In Android, you can enter all the information in the config file. So the following <code>dynatrace {}</code> block must be inserted into the android <code>config</code> variable in your <code>dynatrace.config.yaml</code> file.</p>
+<pre><code class="language-yaml">android:
+  config: "
+    dynatrace {
+      configurations {
+        dev {
+            variantFilter \"Debug\" // build type name is upper case because a product flavor is used
+            // other variant-specific properties
+        }
+        demo {
+            variantFilter \"demo\" // the first product flavor name is always lower case
+            // other variant-specific properties
+        }
+        prod {
+            variantFilter \"Release\" // build type name is upper case because a product flavor is used
+            // other variant-specific properties
+        }
+      }
+    }
+  "
+</code></pre>
+<p>This results into the following:</p>
+<pre><code class="language-shell">&gt; Task :app:printVariantAffiliation
+Variant 'demoDebug' will use configuration 'dev'
+Variant 'demoRelease' will use configuration 'demo'
+Variant 'paidDebug' will use configuration 'dev'
+Variant 'paidRelease' will use configuration 'prod'
+</code></pre>
+<p>In all these blocks, you can define your different application IDs. You can even use a different environment.</p>
+<h3 id="ios" class="hash-header">iOS <a href="#ios" class="hash-link">#</a></h3>
+<p>In iOS, you can define some variables in the <code>dynatrace.config.yaml</code> file. These variables must then be inserted into a prebuild script. The following properties must be inserted into the iOS <code>config</code> variable in your <code>dynatrace.config.yaml</code> file.</p>
+<pre><code class="language-xml">ios:
+  config: "
+  &lt;key&gt;DTXApplicationID&lt;/key&gt;
+  &lt;string&gt;${APPLICATION_ID}&lt;/string&gt;
+  &lt;key&gt;DTXBeaconURL&lt;/key&gt;
+  &lt;string&gt;Your Beacon URL&lt;/string&gt;
+  "
+}
+</code></pre>
+<p>The <code>${APPLICATION_ID}</code> variable must then be inserted with a prebuild script. For more information on this, read <a href="https://medium.com/@andersongusmao/xcode-targets-with-multiples-build-configuration-90a575ddc687" rel="ugc">https://medium.com/@andersongusmao/xcode-targets-with-multiples-build-configuration-90a575ddc687</a>.</p>
+<h2 id="user-opt-in-mode" class="hash-header">User opt-in mode <a href="#user-opt-in-mode" class="hash-link">#</a></h2>
+<p>Allows the user to opt in for monitoring. When enabled, specify the privacy settings. For more information, see the <a href="#user-privacy-options">user privacy options section</a>.</p>
+<h3 id="android-2" class="hash-header">Android <a href="#android-2" class="hash-link">#</a></h3>
+<p>dynatrace.config.yaml</p>
+<pre><code class="language-yaml">android:
+  config:
+    "dynatrace {
+        configurations {
+            sampleConfig {
+                userOptIn false
+            }
+        }
+    }"
+</code></pre>
+<h3 id="ios-2" class="hash-header">iOS <a href="#ios-2" class="hash-link">#</a></h3>
+<p>dynatrace.config.yaml</p>
+<pre><code class="language-xml">ios:
+  config:
+    "&lt;key&gt;DTXUserOptIn&lt;/key&gt;
+    &lt;true/&gt;"
+</code></pre>
+<h2 id="mobile-oneagent-debug-logs" class="hash-header">Mobile OneAgent debug logs <a href="#mobile-oneagent-debug-logs" class="hash-link">#</a></h2>
+<p>If the instrumentation runs through and your application starts but you see no data, you must investigate and find out the reason the mobile agents are not sending any data. You can always open a support ticket, but we strongly recommend that you first collect logs.</p>
+<p>The whole structure is visible, so you can see where the config belongs.</p>
+<h3 id="android-3" class="hash-header">Android <a href="#android-3" class="hash-link">#</a></h3>
+<p>Add the following configuration snippet to your other configuration in <code>dynatrace.config.yaml</code> and run <code>dart run dynatrace_flutter_plugin</code> in the root of your Flutter project:</p>
+<pre><code class="language-yaml">android:
+  config: "
+    dynatrace {
+      configurations {
+        defaultConfig {
+          autoStart{
+            ...
+          }
+          debug.agentLogging true
+        }
+      }
+    }
+  "
+}
+</code></pre>
+<h3 id="ios-3" class="hash-header">iOS <a href="#ios-3" class="hash-link">#</a></h3>
+<p>Add the following configuration snippet to your other configuration in <code>dynatrace.config.yaml</code> and run <code>dart run dynatrace_flutter_plugin</code> in the root of your Flutter project:</p>
+<pre><code class="language-xml">ios:
+  config: "
+  &lt;key&gt;DTXLogLevel&lt;/key&gt;
+  &lt;string&gt;ALL&lt;/string&gt;
+  "
+}
+</code></pre>
+<h2 id="maven-central-in-top-level-gradle-file" class="hash-header">Maven Central in top-level gradle file <a href="#maven-central-in-top-level-gradle-file" class="hash-link">#</a></h2>
+<p>Because the Dynatrace Android agent now requires the MavenCentral repository, if either <code>jcenter()</code> or <code>mavenCentral()</code> is not added inside of <strong>ALL</strong> the repositories blocks via the <a href="https://dt-url.net/jm610pso" rel="ugc">top-level build.gradle</a>, the build will fail.
+Below is an example of what a basic <a href="https://dt-url.net/jm610pso" rel="ugc">top-level build.gradle</a> file should look like after adding <code>mavenCentral()</code> to all repository blocks:</p>
+<p><img src="https://dt-cdn.net/images/mavencentralflutter-548-bc6032e7aa.png" alt="mavenCentralFlutter"></p>
+<p>The location of the <a href="https://dt-url.net/jm610pso" rel="ugc">top-level build.gradle</a> should be:</p>
+<ul>
+<li><code>&lt;rootOfProject&gt;\android\build.gradle</code></li>
+</ul>
+<p><strong>Note:</strong>
+JCenter has noted its <a href="https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/" rel="ugc">sunset</a> on May 1st. Though, JCenter is still syncing with Maven Central so having <code>jcenter()</code> in your <strong>build.gradle</strong> file without the use of <code>mavenCentral()</code> will retrieve the Dynatrace Android Gradle Plugin no problem.</p>
+<h2 id="migration-guide" class="hash-header">Migration Guide <a href="#migration-guide" class="hash-link">#</a></h2>
+<h3 id="differences-of-2x-to-3x" class="hash-header">Differences of 2.x to 3.x <a href="#differences-of-2x-to-3x" class="hash-link">#</a></h3>
+<p>Required Changes:</p>
+<ul>
+<li>If you use <code>DataCollectionLevel.User</code>, change it to =&gt; <code>DataCollectionLevel.UserBehavior</code></li>
+<li>If you use the <code>Configuration</code> object in your <code>start</code> method, the optional <code>monitorWebrequest</code> property no longer exists and needs to be removed.</li>
+</ul>
+<p>Http Instrumentation:
+If you are using the http instrumentation provided by our plugin, we now offer the following options:</p>
+<ul>
+<li>Use our <a href="#instrumenting-web-requests-from-darts-http-package">DynatraceHttpClient</a> which is a wrapper of <a href="https://pub.dev/packages/http">Dart's http package.</a></li>
+<li><a href="#manual-web-request-monitoring">Manually instrument http requests</a> from any http library/package.</li>
+</ul>
+<h2 id="instrumentation-overhead" class="hash-header">Instrumentation Overhead <a href="#instrumentation-overhead" class="hash-link">#</a></h2>
+<p>When using auto-instrumentation through our plugin, here are some examples of the size differences before and after instrumentation for release builds:</p>
+<table>
+<thead>
+<tr>
+<th>Operating System</th>
+<th>App template</th>
+<th>Version</th>
+<th>Size Before</th>
+<th>Size After</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android</td>
+<td>Skeleton</td>
+<td>3.19.2</td>
+<td>7.1  MB</td>
+<td>7.2  MB</td>
+<td>0.1 MB</td>
+</tr>
+<tr>
+<td>iOS</td>
+<td>Skeleton</td>
+<td>3.19.2</td>
+<td>16.8 MB</td>
+<td>21.1 MB</td>
+<td>4.3 MB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="known-issues" class="hash-header">Known issues <a href="#known-issues" class="hash-link">#</a></h2>
+<ul>
+<li><code>OneAgent SDK version X does not match Dynatrace Android Gradle plugin version X</code>: You've probably upgraded the Flutter package. Call <code>dart run dynatrace_flutter_plugin</code> again so that the dependencies in the gradle are updated.</li>
+<li><code>I'm not seeing any captured user actions for flutter widgets or flutter/dart gestures/user input</code>: See <a href="#important-notes">important notes</a> relating to flutter/dart user actions and <a href="#manual-instrumentation">manual instrumentation</a>.</li>
+<li>For Android, if you see an error like "Gradle sync failed: Could not find com.dynatrace.tools.android:gradle-plugin:8.225.1.1004.", please see the <a href="#maven-central-in-top-level-gradle-file">MavenCentral</a> section for an example and more information.</li>
+</ul>
+<h2 id="dynatrace-documentation" class="hash-header">Dynatrace documentation <a href="#dynatrace-documentation" class="hash-link">#</a></h2>
+<p>The documentation for OneAgent for Android and iOS is available at the following locations:</p>
+<ul>
+<li>Android: <a href="https://www.dynatrace.com/support/help/setup-and-configuration/oneagent/android/" rel="ugc">https://www.dynatrace.com/support/help/setup-and-configuration/oneagent/android/</a></li>
+<li>iOS: <a href="https://www.dynatrace.com/support/help/setup-and-configuration/oneagent/ios/" rel="ugc">https://www.dynatrace.com/support/help/setup-and-configuration/oneagent/ios/</a></li>
+</ul>
+<p><strong>Note:</strong>
+The Dynatrace Android Gradle plugin is hosted on <a href="https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.dynatrace.tools.android%22%20AND%20a%3A%22gradle-plugin%22" rel="ugc">Maven Central</a>. JCenter has noted it's <a href="https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/" rel="ugc">sunset</a> on May 1st so Maven Central is the primary source of the Dynatrace Android Gradle plugin.</p>
+<h2 id="report-a-bug-or-open-a-support-case" class="hash-header">Report a bug or open a support case <a href="#report-a-bug-or-open-a-support-case" class="hash-link">#</a></h2>
+<p>For issues, open a support ticket at support.dynatrace.com and provide us with the following details:</p>
+<ul>
+<li>Logs from <a href="#mobile-oneagent-debug-logs">Mobile OneAgent</a></li>
+<li>Your <code>dynatrace.config.yaml</code> file</li>
+</ul>
+</section></div></div></div><aside class="detail-info-box"><a class="packages-scores" href="/packages/dynatrace_flutter_plugin/score"><div class="packages-score packages-score-like" data-package="dynatrace_flutter_plugin"><div class="packages-score-value -has-value"><span class="packages-score-value-number">31</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">likes</div></div><div class="packages-score packages-score-health"><div class="packages-score-value -has-value"><span class="packages-score-value-number">130</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">points</div></div><div class="packages-score packages-score-downloads" title="Number of downloads of this package during the past 30 days"><div class="packages-score-value -has-value"><span class="packages-score-value-number">52.5k</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">downloads</div></div></a><h3 class="title">Documentation</h3><p><a class="link" href="/documentation/dynatrace_flutter_plugin/latest/">API reference</a><br/></p><h3 class="title">Publisher</h3><p><a href="/publishers/dynatrace.com"><img class="-pub-publisher-shield filter-invert-on-dark" src="/static/hash-qdshfgq0/img/material-icon-verified.svg" alt="verified publisher" width="14" height="14" title="Published by a pub.dev verified publisher"/>dynatrace.com</a></p><h3 class="title">Weekly Downloads</h3><div id="-weekly-downloads-sparkline" class="weekly-downloads-sparkline" data-widget="weekly-sparkline" data-weekly-sparkline-points="AL3JaXUuAACBLAAA+DYAADUwAADBMQAAby8AAKEvAACMMwAAYzEAAAIpAADgKAAAmCgAAEUXAABZGAAATScAABssAAA+JwAALC4AAAozAAAPNgAAGTQAADAyAACdMgAAdC8AACgyAACeLQAAHTIAAAYxAABcNAAAFzgAAOIuAADfMwAAQzEAAPswAADCNAAA7jMAAKoxAABBQAAAlkoAAAxFAABORAAA+kAAAMtHAAALOQAAOEMAAJJLAAAvQAAA2zYAADI8AACALAAAyD4AAI49AAA="></div><h3 class="title pkg-infobox-metadata">Metadata</h3><p>The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation.</p><p><a class="link" href="https://www.dynatrace.com/" rel="ugc">Homepage</a><br/></p><h3 class="title">License</h3><p><img class="inline-icon-img filter-invert-on-dark" src="/static/hash-qdshfgq0/img/material-icon-balance.svg" alt="" width="14" height="14" role="presentation"/>unknown (<a href="/packages/dynatrace_flutter_plugin/license">license</a>)</p><h3 class="title">Dependencies</h3><p><a href="https://api.flutter.dev/">flutter</a>, <a href="/packages/http" title="&gt;=1.0.0 &lt;2.0.0">http</a>, <a href="/packages/path" title="^1.8.0">path</a>, <a href="/packages/yaml" title="^3.1.1">yaml</a></p><h3 class="title">More</h3><p><a href="/packages?q=dependency%3Adynatrace_flutter_plugin" rel="nofollow">Packages that depend on dynatrace_flutter_plugin</a><br/><br/><a href="/packages?q=implements-federated-plugin%3Adynatrace_flutter_plugin" rel="nofollow">Packages that implement dynatrace_flutter_plugin</a></p></aside></div><script type="application/ld+json">{"@context":"http\u003a\u002f\u002fschema.org","@type":"SoftwareSourceCode","name":"dynatrace\u005fflutter\u005fplugin","version":"3.333.1","description":"dynatrace\u005fflutter\u005fplugin - The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation.","url":"https\u003a\u002f\u002fpub.dev\u002fpackages\u002fdynatrace\u005fflutter\u005fplugin","dateCreated":"2020-09-07T12\u003a52\u003a17.396329Z","dateModified":"2026-03-10T13\u003a45\u003a49.499506Z","programmingLanguage":"Dart","image":"https\u003a\u002f\u002fpub.dev\u002fstatic\u002fimg\u002fpub-dev-icon-cover-image.png","license":"https\u003a\u002f\u002fpub.dev\u002fpackages\u002fdynatrace\u005fflutter\u005fplugin\u002flicense"}</script></div><div class="detail-metadata"><h3 class="detail-metadata-title"><span class="detail-metadata-toggle">←</span> Metadata</h3><div class="detail-info-box"><a class="packages-scores" href="/packages/dynatrace_flutter_plugin/score"><div class="packages-score packages-score-like" data-package="dynatrace_flutter_plugin"><div class="packages-score-value -has-value"><span class="packages-score-value-number">31</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">likes</div></div><div class="packages-score packages-score-health"><div class="packages-score-value -has-value"><span class="packages-score-value-number">130</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">points</div></div><div class="packages-score packages-score-downloads" title="Number of downloads of this package during the past 30 days"><div class="packages-score-value -has-value"><span class="packages-score-value-number">52.5k</span><span class="packages-score-value-sign"></span></div><div class="packages-score-label">downloads</div></div></a><h3 class="title">Documentation</h3><p><a class="link" href="/documentation/dynatrace_flutter_plugin/latest/">API reference</a><br/></p><h3 class="title">Publisher</h3><p><a href="/publishers/dynatrace.com"><img class="-pub-publisher-shield filter-invert-on-dark" src="/static/hash-qdshfgq0/img/material-icon-verified.svg" alt="verified publisher" width="14" height="14" title="Published by a pub.dev verified publisher"/>dynatrace.com</a></p><h3 class="title">Weekly Downloads</h3><div id="-weekly-downloads-sparkline" class="weekly-downloads-sparkline" data-widget="weekly-sparkline" data-weekly-sparkline-points="AL3JaXUuAACBLAAA+DYAADUwAADBMQAAby8AAKEvAACMMwAAYzEAAAIpAADgKAAAmCgAAEUXAABZGAAATScAABssAAA+JwAALC4AAAozAAAPNgAAGTQAADAyAACdMgAAdC8AACgyAACeLQAAHTIAAAYxAABcNAAAFzgAAOIuAADfMwAAQzEAAPswAADCNAAA7jMAAKoxAABBQAAAlkoAAAxFAABORAAA+kAAAMtHAAALOQAAOEMAAJJLAAAvQAAA2zYAADI8AACALAAAyD4AAI49AAA="></div><h3 class="title pkg-infobox-metadata">Metadata</h3><p>The Dynatrace Flutter plugin helps auto-instrument your Flutter app with Dynatrace OneAgent for Android and iOS. It also provides an API to add manual instrumentation.</p><p><a class="link" href="https://www.dynatrace.com/" rel="ugc">Homepage</a><br/></p><h3 class="title">License</h3><p><img class="inline-icon-img filter-invert-on-dark" src="/static/hash-qdshfgq0/img/material-icon-balance.svg" alt="" width="14" height="14" role="presentation"/>unknown (<a href="/packages/dynatrace_flutter_plugin/license">license</a>)</p><h3 class="title">Dependencies</h3><p><a href="https://api.flutter.dev/">flutter</a>, <a href="/packages/http" title="&gt;=1.0.0 &lt;2.0.0">http</a>, <a href="/packages/path" title="^1.8.0">path</a>, <a href="/packages/yaml" title="^3.1.1">yaml</a></p><h3 class="title">More</h3><p><a href="/packages?q=dependency%3Adynatrace_flutter_plugin" rel="nofollow">Packages that depend on dynatrace_flutter_plugin</a><br/><br/><a href="/packages?q=implements-federated-plugin%3Adynatrace_flutter_plugin" rel="nofollow">Packages that implement dynatrace_flutter_plugin</a></p></div><p class="detail-lead-back"><a class="detail-metadata-toggle">Back</a></p></div><div id="-screenshot-carousel" class="carousel"><fab id="-carousel-prev" class="mdc-fab carousel-prev carousel-nav" data-mdc-auto-init="MDCRipple" title="Previous" data-ga-click-event="screenshot-carousel-prev-click" tabindex="0"><div class="mdc-fab__ripple"></div><img class="mdc-fab__icon" src="/static/hash-qdshfgq0/img/keyboard_arrow_left.svg" alt="previous" width="24" height="24" aria-hidden="true"/></fab><div id="-image-container" class="image-container"></div><fab id="-carousel-next" class="mdc-fab carousel-next carousel-nav" data-mdc-auto-init="MDCRipple" title="Next" data-ga-click-event="screenshot-carousel-next-click" tabindex="0"><div class="mdc-fab__ripple"></div><img class="mdc-fab__icon" src="/static/hash-qdshfgq0/img/keyboard_arrow_right.svg" alt="next" width="24" height="24" aria-hidden="true"/></fab><p id="-screenshot-description" class="screenshot-description"></p></div></main><footer class="site-footer"><a class="link" href="https://dart.dev/">Dart language</a><a class="link sep" href="/report?subject=package%3Adynatrace_flutter_plugin&amp;url=https%3A%2F%2Fpub.dev%2Fpackages%2Fdynatrace_flutter_plugin">Report package</a><a class="link sep" href="/policy">Policy</a><a class="link sep" href="https://www.google.com/intl/en/policies/terms/">Terms</a><a class="link sep" href="https://developers.google.com/terms/">API Terms</a><a class="link sep" href="/security">Security</a><a class="link sep" href="https://www.google.com/intl/en/policies/privacy/">Privacy</a><a class="link sep" href="/help">Help</a><a class="link icon sep" href="/feed.atom"><img class="inline-icon" src="/static/hash-qdshfgq0/img/rss-feed-icon.svg" alt="RSS" width="20" height="20" title="RSS/atom feed"/></a><a class="link icon github_issue" href="https://github.com/dart-lang/pub-dev/issues/new"><img class="inline-icon" src="/static/hash-qdshfgq0/img/bug-report-white-96px.png" alt="bug report" width="20" height="20" title="Report an issue with this site"/></a></footer><script src="/static/hash-qdshfgq0/highlight/highlight-with-init.js" defer="defer"></script></body></html>

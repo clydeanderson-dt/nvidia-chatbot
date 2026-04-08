@@ -1,0 +1,29 @@
+android:
+  config: #replace <beaconUrl> with the actual URL provided by Dynatrace
+    "dynatrace {
+      configurations {
+        defaultConfig {
+          autoStart{
+            applicationId 'YOUR_DYNATRACE_APPLICATION_ID'
+            beaconUrl 'beaconUrl'
+          }
+          agentBehavior.startupLoadBalancing true
+          agentBehavior.startupWithGrailEnabled true
+        }
+      }
+    }"
+
+ios:
+  config: #replace <beaconUrl> with the actual URL provided by Dynatrace
+    "<key>DTXApplicationID</key>
+    <string>YOUR_DYNATRACE_APPLICATION_ID</string>
+    <key>DTXBeaconURL</key>
+    <string><beaconUrl></string>
+    <key>DTXStartupLoadBalancing</key>
+    <true/>
+    <key>DTXStartupWithGrailEnabled</key>
+    <true/>
+    <key>DTXUserOptIn</key>
+    <false/>
+    <key>DTXLogLevel</key>
+    <string>ALL</string>"

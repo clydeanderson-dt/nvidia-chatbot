@@ -1,0 +1,40 @@
+# /etc/systemd/system/load_gen.service
+#
+# Installation:
+#   sudo cp deploy/load_gen.service /etc/systemd/system/load_gen.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable load_gen
+#   sudo systemctl start load_gen
+#
+# Logs: journalctl -u load_gen -f
+#
+# Create /opt/chatbot/load_gen/.env before starting. Required vars:
+#   LOAD_GEN_URL, LOAD_GEN_CONCURRENCY, DYNATRACE_OTLP_ENDPOINT, DYNATRACE_API_TOKEN
+
+[Unit]
+Description=AI Chatbot Load Generator
+# Start after the backend so requests don't fail at launch.
+After=network.target chatbot.service
+Wants=chatbot.service
+
+[Service]
+Type=simple
+# Change User to the OS user that owns /opt/chatbot.
+User=www-data
+WorkingDirectory=/opt/chatbot/load_gen
+EnvironmentFile=/opt/chatbot/load_gen/.env
+ExecStart=/opt/chatbot/load_gen_venv/bin/python load_gen.py
+Restart=on-failure
+RestartSec=10
+
+# Route stdout/stderr to the systemd journal.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=load_gen
+
+# Security hardening.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

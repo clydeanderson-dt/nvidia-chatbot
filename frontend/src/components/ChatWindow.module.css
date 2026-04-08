@@ -1,0 +1,14 @@
+.window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  color: #888;
+  font-size: 0.95rem;
+  text-align: center;
+  margin: auto;
+}

@@ -1,0 +1,100 @@
+.panel {
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.toggle {
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle:hover {
+  background: #f0f0f0;
+}
+
+.icon {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.current {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #888;
+  font-size: 0.75rem;
+}
+
+.body {
+  padding: 8px 16px 12px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #333;
+  cursor: pointer;
+}
+
+.locked .option {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.setBtn {
+  flex-shrink: 0;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #0066cc;
+  border-radius: 6px;
+  background: #0066cc;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.setBtn:hover:not(:disabled) {
+  background: #0052a3;
+  border-color: #0052a3;
+}
+
+.setBtn:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  cursor: default;
+}

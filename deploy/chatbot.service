@@ -1,0 +1,35 @@
+# /etc/systemd/system/chatbot.service
+#
+# Installation:
+#   sudo cp deploy/chatbot.service /etc/systemd/system/chatbot.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable chatbot
+#   sudo systemctl start chatbot
+#
+# Logs: journalctl -u chatbot -f
+
+[Unit]
+Description=AI Chatbot FastAPI Backend
+After=network.target
+
+[Service]
+Type=simple
+# Change User to the OS user that owns /opt/chatbot.
+User=www-data
+WorkingDirectory=/opt/chatbot/backend
+EnvironmentFile=/opt/chatbot/backend/.env
+ExecStart=/opt/chatbot/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=on-failure
+RestartSec=5
+
+# Route stdout/stderr to the systemd journal.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chatbot
+
+# Security hardening.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
