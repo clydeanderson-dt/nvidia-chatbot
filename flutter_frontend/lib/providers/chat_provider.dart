@@ -5,8 +5,7 @@ import '../models/chat_message.dart';
 import '../models/chat_request.dart';
 import '../models/starter_request.dart';
 import '../services/api_service.dart';
-
-import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+import 'config_provider.dart';
 
 class ChatProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -15,13 +14,29 @@ class ChatProvider extends ChangeNotifier {
   List<ChatMessage> messages = [];
   bool isStreaming = false;
   List<String> suggestions = [];
-  String systemPrompt = 'You are a helpful, knowledgeable, and friendly AI assistant.';
-  String llmProvider = 'nim_api';
+
+  // Reference to ConfigProvider for system prompt and LLM provider
+  ConfigProvider? _configProvider;
+
+  // Convenience getters that delegate to ConfigProvider
+  String get systemPrompt => _configProvider?.systemPrompt ?? 
+      'You are a helpful, knowledgeable, and friendly AI assistant.';
+  String get llmProvider => _configProvider?.llmProvider ?? 'nim_api';
 
   bool get isLocked => messages.isNotEmpty;
 
   ChatProvider() {
-    fetchStarterSuggestions();
+    // Don't fetch starters here - wait for ConfigProvider to be set
+  }
+
+  /// Called by MultiProvider to inject ConfigProvider dependency.
+  void setConfigProvider(ConfigProvider provider) {
+    if (_configProvider == provider) return;
+    _configProvider = provider;
+    // Fetch starters once we have config (and if messages are empty)
+    if (messages.isEmpty && suggestions.isEmpty) {
+      fetchStarterSuggestions();
+    }
   }
 
   Future<void> sendMessage(String text) async {
@@ -46,7 +61,15 @@ class ChatProvider extends ChangeNotifier {
       messages.last.content = response.reply;
       suggestions = response.suggestions;
     } catch (e) {
-      messages.last.content = 'Sorry, something went wrong. Please try again.';
+      // Extract error message from exception if available
+      String errorMsg = 'Sorry, something went wrong. Please try again.';
+      if (e is Exception) {
+        final match = RegExp(r'Exception: (.+)').firstMatch(e.toString());
+        if (match != null) {
+          errorMsg = match.group(1) ?? errorMsg;
+        }
+      }
+      messages.last.content = errorMsg;
       suggestions = [];
     } finally {
       isStreaming = false;
@@ -64,21 +87,6 @@ class ChatProvider extends ChangeNotifier {
     suggestions = [];
     notifyListeners();
     fetchStarterSuggestions();
-  }
-
-  void setSystemPrompt(String value) {
-    if (isLocked || value.trim() == systemPrompt.trim()) return;
-    systemPrompt = value;
-    notifyListeners();
-    if (messages.isEmpty) {
-      fetchStarterSuggestions();
-    }
-  }
-
-  void setLlmProvider(String value) {
-    if (isLocked || value == llmProvider) return;
-    llmProvider = value;
-    notifyListeners();
   }
 
   Future<void> fetchStarterSuggestions() async {

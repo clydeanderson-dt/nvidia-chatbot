@@ -23,7 +23,7 @@ A full-stack AI chatbot that uses the **NVIDIA NIM API** (via LangChain) to serv
 | LLM client | `langchain-nvidia-ai-endpoints`, `langchain` |
 | Backend framework | FastAPI + uvicorn |
 | Telemetry | Traceloop SDK → Dynatrace OTLP endpoint |
-| React frontend | React 19 (Vite, CSS Modules) |
+| React frontend | React 19 (Vite, React Router v7, CSS Modules) |
 | React-to-backend proxy | Vite dev server `/api` → `localhost:8000` |
 | Flutter frontend | Flutter 3.x, `provider` state management, `dynatrace_flutter_plugin` |
 | Flutter HTTP | `Dynatrace().createHttpClient()` (instrumented) |
@@ -48,8 +48,12 @@ A full-stack AI chatbot that uses the **NVIDIA NIM API** (via LangChain) to serv
 
 ```
 main.py                  — FastAPI app setup: CORS, Traceloop init (optional), router registration
-routers/chat.py          — API route handlers
+routers/chat.py          — API route handlers for chat endpoints
+routers/chaos.py         — API route handlers for chaos/fault injection
+routers/config.py        — API route handlers for app configuration
 services/llm.py          — LangChain chain construction and session management
+services/chaos.py        — Chaos configuration service with presets and injection helpers
+services/app_config.py   — App configuration service (system prompt, provider)
 models/schemas.py        — Pydantic request/response models
 requirements.txt         — Python dependencies
 ```
@@ -62,6 +66,15 @@ requirements.txt         — Python dependencies
 | `POST` | `/api/chat` | Send a message, receive assistant reply |
 | `POST` | `/api/chat/starters` | Generate starter suggestions for a given system prompt |
 | `DELETE` | `/api/chat/{session_id}` | Clear server-side conversation history for a session |
+| `GET` | `/api/config` | Get current app configuration (system prompt, provider) |
+| `PATCH` | `/api/config` | Update app configuration |
+| `GET` | `/api/chaos` | Get current chaos/fault injection configuration |
+| `PATCH` | `/api/chaos` | Update chaos configuration |
+| `POST` | `/api/chaos/reset` | Reset all chaos settings to defaults |
+| `POST` | `/api/chaos/preset/{name}` | Apply a named chaos preset (healthy, slow_llm, flaky_network, rate_limited, degraded) |
+| `GET` | `/api/chaos/presets` | List available chaos presets |
+| `GET` | `/api/chaos/status` | Get chaos status (active flag + config) |
+| `POST` | `/api/config/reset` | Reset app configuration to defaults |
 
 ### `POST /api/chat` Request Body (`ChatRequest`)
 
@@ -100,25 +113,34 @@ Returns `{"suggestions": ["q1", "q2", "q3"]}` — up to 3 conversation-starter q
 ## React Frontend Structure (`frontend/src/`)
 
 ```
-App.jsx                        — Root component; composes all sub-components
-hooks/useChat.js               — All chat state and API logic (single hook)
+App.jsx                        — React Router shell: / → ChatPage, /config → ConfigPage
+main.jsx                       — Entry point; wraps App in BrowserRouter and ConfigProvider
+context/ConfigContext.jsx      — Global state for app config + chaos config; polls chaos every 5s
+hooks/useChat.js               — Chat state and API logic: messages, session ID, suggestions
+pages/ChatPage.jsx             — Chat page: header, chaos banner, message list, chips, input bar
+pages/ConfigPage.jsx           — Settings page: system prompt, provider, chaos presets and controls
 components/ChatWindow.jsx      — Scrollable message list, auto-scrolls to bottom
 components/MessageBubble.jsx   — Renders a single user or assistant message (markdown for assistant)
 components/InputBar.jsx        — Text input + send button
-components/SystemPromptPanel.jsx — Collapsible textarea to edit system prompt
-components/LLMProviderPanel.jsx  — Collapsible radio group to select LLM provider
 components/SuggestionChips.jsx — Follow-up question pill buttons (shown after each bot reply)
 ```
+
+### `ConfigContext` (key details)
+
+- Provides `appConfig` (system prompt, provider) and `chaosConfig` (all 17 chaos fields) to the entire app.
+- Fetches `GET /api/config`, `GET /api/chaos`, and `GET /api/chaos/presets` on mount.
+- Polls chaos config every 5 seconds and re-fetches on browser tab visibility change.
+- Exposes `updateAppConfig()`, `updateChaosConfig()`, `resetChaosConfig()`, and `applyPreset()` for the `ConfigPage`.
 
 ### `useChat` Hook (key details)
 
 - Generates a stable `sessionId` with `crypto.randomUUID()` per browser tab (lost on page reload).
-- Maintains `messages` (`[{ role, content }]`), `isStreaming`, `systemPrompt`, and `llmProvider` state.
-- `sendMessage(text)`: POSTs to `/api/chat` with `provider` field, fills in the last (placeholder) assistant message on response.
+- Maintains `messages` (`[{ role, content }]`), `isStreaming`, and `suggestions` state.
+- Reads `appConfig` from `ConfigContext` — does **not** manage system prompt or provider locally.
+- `sendMessage(text)`: POSTs to `/api/chat` with `session_id` and `message` only (server uses its own config for system prompt and provider).
 - `clearHistory()`: DELETEs `/api/chat/{sessionId}` and resets `messages` to `[]`.
 - `suggestions` (`string[]`): 2–3 follow-up question chips from the latest bot reply; cleared immediately when the user sends a new message or calls `clearHistory()`.
-- Fetches starter suggestions via `POST /api/chat/starters` when the message list is empty.
-- The system prompt and provider take effect on the **next** message sent (locked while a conversation is in progress).
+- Fetches starter suggestions via `POST /api/chat/starters` (empty body — server uses its own config) when the message list is empty or when `appConfig.system_prompt` changes.
 
 ---
 
@@ -126,7 +148,7 @@ components/SuggestionChips.jsx — Follow-up question pill buttons (shown after 
 
 ```
 lib/
-  main.dart                    — App entry point; starts Dynatrace, bootstraps MaterialApp
+  main.dart                    — App entry point; starts Dynatrace, bootstraps MaterialApp with routing
   config.dart                  — baseUrl compile-time constant (--dart-define=BASE_URL=...)
   models/
     chat_message.dart          — ChatMessage (role, content)
@@ -134,12 +156,16 @@ lib/
     chat_response.dart         — ChatResponse (fromJson)
     starter_request.dart       — StarterRequest (toJson)
     starter_response.dart      — StarterResponse (fromJson)
+    app_config.dart            — AppConfig model (system prompt, provider)
+    chaos_config.dart          — ChaosConfig model (18 injectable failure fields)
   providers/
-    chat_provider.dart         — ChangeNotifier; mirrors useChat hook logic
+    chat_provider.dart         — ChangeNotifier; messages, session ID, suggestions
+    config_provider.dart       — ChangeNotifier; app config + chaos config, polls chaos every 5s
   services/
-    api_service.dart           — HTTP client (Dynatrace-instrumented); postChat, postStarters, deleteSession
+    api_service.dart           — HTTP client (Dynatrace-instrumented); chat, config, and chaos endpoints
   screens/
-    chat_screen.dart           — Scaffold; composes all widgets
+    chat_screen.dart           — Scaffold; chat UI with chaos banner, message list, chips, input bar
+    config_screen.dart         — Settings page: system prompt, provider, chaos presets and controls
   widgets/
     chat_window.dart           — Reversed ListView of MessageBubble
     input_bar.dart             — TextField + send button (Dynatrace UserInteractionWidget)
@@ -147,6 +173,11 @@ lib/
     suggestion_chips.dart      — Wrap of OutlinedButton chips (Dynatrace UserInteractionWidget)
     system_prompt_panel.dart   — ExpansionTile with TextField; locked when conversation active
     llm_provider_panel.dart    — ExpansionTile with radio group; locked when conversation active
+    chaos_banner.dart          — Orange warning banner when chaos is active; tappable to open settings
+    chaos_preset_buttons.dart  — Grid of preset buttons (healthy, slow_llm, flaky_network, etc.)
+    llm_failures_section.dart  — Sliders and switches for LLM chaos fields
+    latency_injection_section.dart — Controls for fixed, random, and spike delay injection
+    http_errors_section.dart   — Sliders for HTTP 500/503 and session error rates
 ```
 
 ### Flutter key details
@@ -154,7 +185,9 @@ lib/
 - **`baseUrl`** is set at compile time via `--dart-define=BASE_URL=http://...`; defaults to `http://localhost:8000`.
 - Use `10.0.2.2` instead of `localhost` when running on Android emulators.
 - **`dynatrace.config.yaml`** is gitignored — copy from `dynatrace.config.yaml.example` and populate with your Dynatrace Application ID and beacon URL before building.
-- State management: `provider` package with a single `ChatProvider` (`ChangeNotifier`).
+- State management: `provider` package with `ChatProvider` and `ConfigProvider` (`ChangeNotifier`).
+- `ConfigProvider` fetches app config and chaos config from the backend, polls chaos every 5 seconds, and re-fetches on app resume.
+- Two routes: `/` (ChatScreen) and `/config` (ConfigScreen).
 - Session ID generated once per app launch with `const Uuid().v4()`.
 - All HTTP calls go through `Dynatrace().createHttpClient()` for automatic RUM tracing.
 
@@ -198,6 +231,49 @@ python load_gen.py
 - All backend modules use `python-dotenv` (`load_dotenv()`) — `.env` must be in `backend/`.
 - `load_gen/load_gen.py` also calls `load_dotenv()` — `.env` must be in `load_gen/`.
 - Frontend CSS uses **CSS Modules** (`.module.css`); no global CSS framework.
-- The backend registers a single router with prefix `/api` (`routers/chat.py`).
+- The backend registers three routers: `routers/chat.py` at `/api`, `routers/chaos.py` at `/api/chaos`, and `routers/config.py` at `/api/config`.
 - Traceloop SDK is initialised **before** FastAPI is imported in `main.py` so instrumentation wraps everything (skipped gracefully if Dynatrace vars are absent).
 - `dynatrace.config.yaml` is gitignored; the `.example` file in the same directory is the template.
+
+---
+
+## Observability
+
+This application is monitored with Dynatrace - an observability platform. Details on monitoring instrumentation can be found in the README files throughout this workspace.
+
+To interact with Dynatrace, you can use either the MCP or dtctl CLI tool.
+
+### DQL Tips
+Here are some example queries to show how to filter for this application's telemetry data in Dynatrace.
+
+#### Traces/Spans
+```
+fetch spans
+| filter dt.service.name == "nvidia-chatbot"
+```
+
+#### Logs
+```
+fetch logs
+| filter service.name == "nvidia-chatbot"
+```
+
+#### Real User Monitoring
+
+Flutter Frontend
+```
+fetch user.events
+| filter frontend.name == "AI_Chatbot_Flutter"
+```
+
+Frontend
+```
+fetch user.events
+| filter frontend.name == "AI_Chatbot"
+```
+
+#### Specifying the timeframe
+```
+fetch logs, from:now() - 30m
+| filter service.name == "nvidia-chatbot"
+```

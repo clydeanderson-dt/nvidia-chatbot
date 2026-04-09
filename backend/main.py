@@ -98,10 +98,15 @@ logger = logging.getLogger("chatbot.app")
 
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi import Request as FastAPIRequest  # noqa: E402
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
 
-from routers.chat import router  # noqa: E402
+from routers.chat import router, get_chaos_error_message  # noqa: E402
+from routers.chaos import router as chaos_router  # noqa: E402
+from routers.config import router as config_router  # noqa: E402
+from services import chaos as chaos_service  # noqa: E402
 
 
 @asynccontextmanager
@@ -116,6 +121,19 @@ app = FastAPI(title="AI Chatbot API", version="1.0.0", lifespan=lifespan)
 FastAPIInstrumentor.instrument_app(app)
 logger.info("FastAPI instrumented — HTTP endpoints will create trace spans")
 
+
+# Register exception handler for chaos-injected errors
+@app.exception_handler(chaos_service.ChaosInjectedError)
+async def chaos_exception_handler(request: FastAPIRequest, exc: chaos_service.ChaosInjectedError):
+    """Handle chaos-injected errors with descriptive messages."""
+    status_code, message = get_chaos_error_message(exc)
+    logger.warning(f"Chaos error: {exc.__class__.__name__} -> {message}")
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": message},
+    )
+
+
 # Parse allowed origins from the environment variable.
 # Defaults to localhost dev origins if the variable is not set.
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
@@ -125,8 +143,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "DELETE", "PATCH"],
     allow_headers=["Content-Type"],
 )
 
 app.include_router(router)
+app.include_router(chaos_router)
+app.include_router(config_router)

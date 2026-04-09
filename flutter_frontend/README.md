@@ -15,17 +15,31 @@ Flutter chatbot UI that mirrors the React frontend. Communicates with the backen
 
 | File | Role |
 |---|---|
-| `lib/main.dart` | App entry point; starts Dynatrace, bootstraps `MaterialApp` |
+| `lib/main.dart` | App entry point; starts Dynatrace, bootstraps `MaterialApp` with routing |
 | `lib/config.dart` | `baseUrl` compile-time constant set via `--dart-define=BASE_URL=…` |
-| `lib/providers/chat_provider.dart` | `ChangeNotifier`; single source of truth for messages, session ID, system prompt, provider, suggestions |
-| `lib/services/api_service.dart` | HTTP client (Dynatrace-instrumented); `postChat`, `postStarters`, `deleteSession` |
-| `lib/screens/chat_screen.dart` | Root scaffold; composes all widgets |
+| `lib/providers/chat_provider.dart` | `ChangeNotifier`; messages, session ID, suggestions |
+| `lib/providers/config_provider.dart` | `ChangeNotifier`; app config + chaos config, polls chaos every 5s |
+| `lib/services/api_service.dart` | HTTP client (Dynatrace-instrumented); chat, config, and chaos endpoints |
+| `lib/screens/chat_screen.dart` | Chat scaffold; chaos banner, message list, chips, input bar |
+| `lib/screens/config_screen.dart` | Settings page; system prompt, provider, chaos presets and controls |
 | `lib/widgets/chat_window.dart` | Reversed `ListView` of `MessageBubble` widgets |
 | `lib/widgets/message_bubble.dart` | User plain text / assistant `MarkdownBody` + typing indicator |
 | `lib/widgets/input_bar.dart` | `TextField` + send button |
 | `lib/widgets/suggestion_chips.dart` | `Wrap` of `OutlinedButton` chips for follow-up and starter questions |
 | `lib/widgets/system_prompt_panel.dart` | `ExpansionTile` with `TextField`; locked when a conversation is active |
 | `lib/widgets/llm_provider_panel.dart` | `ExpansionTile` with radio group for `nim_api` / `self_hosted`; locked when a conversation is active |
+| `lib/widgets/chaos_banner.dart` | Orange warning banner when chaos is active; tappable to open settings |
+| `lib/widgets/chaos_preset_buttons.dart` | Grid of preset buttons (healthy, slow_llm, flaky_network, etc.) |
+| `lib/widgets/llm_failures_section.dart` | Sliders and switches for LLM chaos fields |
+| `lib/widgets/latency_injection_section.dart` | Controls for fixed, random, and spike delay injection |
+| `lib/widgets/http_errors_section.dart` | Sliders for HTTP 500/503 and session error rates |
+| `lib/models/chat_message.dart` | ChatMessage model (role, content) |
+| `lib/models/chat_request.dart` | ChatRequest model (toJson) |
+| `lib/models/chat_response.dart` | ChatResponse model (fromJson) |
+| `lib/models/starter_request.dart` | StarterRequest model (toJson) |
+| `lib/models/starter_response.dart` | StarterResponse model (fromJson) |
+| `lib/models/app_config.dart` | AppConfig model (system prompt, provider) |
+| `lib/models/chaos_config.dart` | ChaosConfig model (18 injectable failure fields) |
 
 ---
 
@@ -91,15 +105,26 @@ Common targets for local testing:
 
 ## Key behaviours
 
+### Routing
+
+- Two routes: `/` (ChatScreen) and `/config` (ConfigScreen).
+- The chat screen app bar includes a settings icon to navigate to `/config` and a clear button to reset the conversation.
+
 ### Session ID
 
 A UUID is generated once per app launch via `const Uuid().v4()` and is stable for the lifetime of the process. Restarting the app creates a new session — previous messages are lost from both the UI and the server.
 
 ### System prompt and provider
 
-- The system prompt and LLM provider selector are **locked** while there are messages in the conversation.
-- Changes only take effect after clearing the conversation history (tap the clear button in the app bar).
-- The system prompt applies to the **next** message sent; it does not alter existing messages retroactively.
+- The system prompt and LLM provider are managed on the `/config` settings screen via `ConfigProvider`.
+- Changes are saved to the backend via `PATCH /api/config` and take effect on the next chat message.
+- `ChatProvider` delegates to `ConfigProvider` for system prompt and provider values.
+
+### Chaos engineering
+
+- `ConfigProvider` fetches chaos config on init and polls every 5 seconds to stay in sync.
+- When any chaos setting is active, an orange warning banner appears on the chat screen.
+- The settings screen (`/config`) provides preset buttons (healthy, slow_llm, flaky_network, rate_limited, degraded) and granular controls for LLM failures, latency injection, and HTTP error rates.
 
 ### Starter suggestions
 

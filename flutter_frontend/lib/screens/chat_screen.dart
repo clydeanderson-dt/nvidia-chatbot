@@ -1,13 +1,12 @@
-import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/chat_provider.dart';
+import '../providers/config_provider.dart';
+import '../widgets/chaos_banner.dart';
 import '../widgets/chat_window.dart';
 import '../widgets/input_bar.dart';
-import '../widgets/llm_provider_panel.dart';
 import '../widgets/suggestion_chips.dart';
-import '../widgets/system_prompt_panel.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
@@ -15,6 +14,7 @@ class ChatScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chat = context.watch<ChatProvider>();
+    final config = context.watch<ConfigProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -23,6 +23,11 @@ class ChatScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.pushNamed(context, '/config'),
+          ),
           TextButton(
             onPressed: () async {
               // Dynatrace RUM (Classic) - not necessary for RUM on Grail
@@ -57,15 +62,9 @@ class ChatScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          SystemPromptPanel(
-            systemPrompt: chat.systemPrompt,
-            onChanged: chat.setSystemPrompt,
-            locked: chat.isLocked,
-          ),
-          LlmProviderPanel(
-            provider: chat.llmProvider,
-            onChanged: chat.setLlmProvider,
-            locked: chat.isLocked,
+          ChaosBanner(
+            visible: config.isAnyChaosActive,
+            onTap: () => Navigator.pushNamed(context, '/config'),
           ),
           Expanded(
             child: ChatWindow(

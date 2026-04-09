@@ -79,6 +79,19 @@ fi
 log "Building frontend..."
 pushd "$INSTALL_DIR/frontend" >/dev/null
 npm ci --silent
+
+# Ensure .env.local exists so VITE_DYNATRACE_RUM_URL is available at build time.
+if [[ ! -f .env.local ]]; then
+    log "Creating frontend .env.local from example — fill in the Dynatrace RUM URL for browser monitoring."
+    cp .env.example .env.local
+    chmod 600 .env.local
+    echo ""
+    echo "  *** Edit $INSTALL_DIR/frontend/.env.local and set:"
+    echo "      VITE_DYNATRACE_RUM_URL"
+    echo "      (Dynatrace RUM is optional — the app works without it)"
+    echo ""
+fi
+
 npm run build --silent
 popd >/dev/null
 

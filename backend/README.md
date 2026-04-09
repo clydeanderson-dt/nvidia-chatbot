@@ -42,6 +42,15 @@ Create `backend/.env` (copy from `.env.example`):
 | `POST` | `/api/chat` | Send a message, receive a reply and follow-up suggestions |
 | `POST` | `/api/chat/starters` | Generate opening questions for a given system prompt |
 | `DELETE` | `/api/chat/{session_id}` | Clear server-side conversation history for a session |
+| `GET` | `/api/config` | Get current app configuration (system prompt, provider) |
+| `PATCH` | `/api/config` | Update app configuration |
+| `POST` | `/api/config/reset` | Reset app configuration to defaults |
+| `GET` | `/api/chaos` | Get current chaos configuration |
+| `PATCH` | `/api/chaos` | Update chaos configuration |
+| `POST` | `/api/chaos/reset` | Reset all chaos settings to defaults |
+| `GET` | `/api/chaos/presets` | List available chaos presets |
+| `POST` | `/api/chaos/preset/{name}` | Apply a named chaos preset |
+| `GET` | `/api/chaos/status` | Get chaos status (active flag + config) |
 
 ### `GET /api/health`
 
@@ -62,7 +71,7 @@ Create `backend/.env` (copy from `.env.example`):
 }
 ```
 
-`provider` is `"nim_api"` (default) or `"self_hosted"`.
+`provider` is `"nim_api"` (default) or `"self_hosted"`. Both `system_prompt` and `provider` are optional — if omitted, the server uses its current app configuration.
 
 **Response**
 
@@ -93,7 +102,7 @@ Create `backend/.env` (copy from `.env.example`):
 
 ```json
 {
-  "starters": [
+  "suggestions": [
     "What is a Kubernetes Pod?",
     "How do I scale a Deployment?",
     "What is the difference between a Service and an Ingress?"
@@ -106,6 +115,88 @@ Returns up to 3 opening questions tailored to the system prompt. Returns `[]` on
 ### `DELETE /api/chat/{session_id}`
 
 Clears the in-memory message history for the given session. Returns `204 No Content`.
+
+---
+
+## App Configuration API
+
+The app configuration controls the system prompt and LLM provider used by all requests.
+
+### `GET /api/config`
+
+```json
+{
+  "system_prompt": "You are a helpful, knowledgeable, and friendly AI assistant.",
+  "provider": "nim_api"
+}
+```
+
+### `PATCH /api/config`
+
+Partially update the app configuration.
+
+```json
+{
+  "system_prompt": "You are a pirate assistant."
+}
+```
+
+---
+
+## Chaos Engineering API
+
+The chaos API allows injecting faults and failures for testing observability, resilience, and demos.
+
+### Chaos Configuration Fields
+
+| Category | Field | Type | Description |
+|---|---|---|---|
+| **LLM Failures** | `llm_delay_ms` | int | Delay before LLM response (ms) |
+| | `llm_error_rate` | float | Probability of LLM call failure (0.0–1.0) |
+| | `rate_limit_enabled` | bool | Enable rate limiting simulation |
+| | `rate_limit_after_n` | int | Return 429 after N requests |
+| | `malformed_response_rate` | float | Probability of malformed JSON in suggestions |
+| | `empty_response_rate` | float | Probability of empty LLM response |
+| | `hallucination_enabled` | bool | Inject hallucination marker text |
+| | `token_limit_error_enabled` | bool | Simulate token/context limit errors |
+| **Latency** | `fixed_delay_ms` | int | Fixed delay added to all responses (ms) |
+| | `random_delay_min_ms` | int | Minimum random delay (ms) |
+| | `random_delay_max_ms` | int | Maximum random delay (ms) |
+| | `spike_delay_ms` | int | Spike delay amount (ms) |
+| | `spike_probability` | float | Probability of spike delay (0.0–1.0) |
+| **HTTP Errors** | `http_500_rate` | float | Probability of HTTP 500 errors |
+| | `http_503_rate` | float | Probability of HTTP 503 errors |
+| | `session_error_rate` | float | Probability of session errors |
+
+### Chaos Presets
+
+| Preset | Effect |
+|---|---|
+| `healthy` | All chaos disabled |
+| `slow_llm` | 5 second LLM delay |
+| `flaky_network` | 30% HTTP 500 errors + random delays (500–2000ms) |
+| `rate_limited` | 429 after 3 requests |
+| `degraded` | 20% LLM errors, 10% empty responses, 1s fixed delay |
+
+### Example: Apply a Preset
+
+```bash
+curl -X POST http://localhost:8000/api/chaos/preset/slow_llm
+```
+
+### Example: Custom Chaos Configuration
+
+```bash
+curl -X PATCH http://localhost:8000/api/chaos \
+  -H "Content-Type: application/json" \
+  -d '{"llm_delay_ms": 2000, "http_500_rate": 0.2}'
+```
+
+### Example: Reset Chaos
+
+```bash
+curl -X POST http://localhost:8000/api/chaos/reset
+```
 
 ---
 

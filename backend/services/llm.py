@@ -21,6 +21,8 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from traceloop.sdk.decorators import task, workflow
 
+from services import chaos
+
 load_dotenv()
 
 logger = logging.getLogger("chatbot.llm")
@@ -93,7 +95,8 @@ async def get_response(
     provider: str = "nim_api",
 ) -> str:
     """Invoke the chain and return the assistant reply as a plain string."""
-    _otel_trace.get_current_span().set_attribute("session.id", session_id)
+    span = _otel_trace.get_current_span()
+    span.set_attribute("session.id", session_id)
     logger.info(
         "LLM request  | session=%s  model=%s  provider=%s  message_len=%d",
         session_id,
@@ -102,6 +105,17 @@ async def get_response(
         len(message),
     )
 
+    # ── Pre-LLM Chaos Injection ───────────────────────────────────────────────
+    chaos_meta = await chaos.check_pre_llm_chaos()
+    for key, value in chaos_meta.items():
+        span.set_attribute(key, value)
+
+    # ── Latency Injection ─────────────────────────────────────────────────────
+    delay_ms = await chaos.inject_delay()
+    if delay_ms > 0:
+        span.set_attribute("chaos.delay_ms", delay_ms)
+        span.set_attribute("chaos.injected", True)
+
     chain = _build_chain(system_prompt, provider)
     config = {"configurable": {"session_id": session_id}}
     start = time.perf_counter()
@@ -109,12 +123,18 @@ async def get_response(
     try:
         result = await chain.ainvoke({"input": message}, config=config)
         elapsed = time.perf_counter() - start
+
+        # ── Post-LLM Chaos Modification ───────────────────────────────────────
+        content, post_chaos_meta = chaos.modify_llm_response(result.content)
+        for key, value in post_chaos_meta.items():
+            span.set_attribute(key, value)
+
         logger.info(
             "LLM response | session=%s  elapsed=%.2fs",
             session_id,
             elapsed,
         )
-        return result.content
+        return content
     except Exception as exc:
         elapsed = time.perf_counter() - start
         logger.error(
@@ -135,6 +155,11 @@ async def get_suggestions(message: str, reply: str, provider: str = "nim_api") -
     llm = _llms.get(provider)
     if llm is None:
         return []
+
+    # ── Chaos: Malformed Response Injection ───────────────────────────────────
+    if chaos.should_malform_suggestions():
+        logger.warning("Chaos: returning malformed suggestions JSON")
+        return []  # Simulates JSON parse failure by returning empty
 
     prompt = (
         "Given the following exchange, suggest exactly 3 short follow-up questions "

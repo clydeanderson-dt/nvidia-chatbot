@@ -185,7 +185,7 @@ The script is **idempotent** — safe to re-run if it fails partway through. It 
 4. Build the React frontend (`npm ci && npm run build`)
 5. Copy the frontend build to `/var/www/chatbot/` and configure nginx
 6. Install and enable the `chatbot` and `load_gen` systemd services
-7. Create stub `.env` files at `/opt/chatbot/backend/.env` and `/opt/chatbot/load_gen/.env`
+7. Create stub `.env` files at `/opt/chatbot/backend/.env`, `/opt/chatbot/frontend/.env.local`, and `/opt/chatbot/load_gen/.env`
 
 > **The script will pause and remind you to fill in the `.env` files before starting the backend.**
 
@@ -220,6 +220,18 @@ sudo nano /opt/chatbot/load_gen/.env
 | `LOAD_GEN_PROVIDER` | `nim_api` | `nim_api` or `self_hosted` |
 | `DYNATRACE_OTLP_ENDPOINT` | — | Same value as the backend |
 | `DYNATRACE_API_TOKEN` | — | Same value as the backend |
+
+#### Frontend — `/opt/chatbot/frontend/.env.local`
+
+```bash
+nano /opt/chatbot/frontend/.env.local
+```
+
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_DYNATRACE_RUM_URL` | No | Full URL to your Dynatrace RUM JavaScript tag. If set, browser monitoring is injected into the frontend at build time. Leave the placeholder if you don't need RUM. |
+
+> **Note:** Changes to `.env.local` require a frontend rebuild. Re-run `bash deploy/setup.sh` or rebuild manually in `/opt/chatbot/frontend/`.
 
 ---
 
@@ -298,6 +310,7 @@ sudo systemctl restart chatbot load_gen
 ├── backend/            FastAPI application
 │   └── .env            ← credentials live here (chmod 600)
 ├── frontend/           React source (used only for builds)
+│   └── .env.local      ← Dynatrace RUM URL (chmod 600)
 ├── load_gen/           Load generator
 │   └── .env            ← load gen config (chmod 600)
 ├── venv/               Python venv for the backend

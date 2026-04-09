@@ -15,6 +15,7 @@
 |---|---|---|
 | **Backend** | [backend/README.md](backend/README.md) | FastAPI server — LLM inference, session management, OpenTelemetry |
 | **Frontend** | [frontend/README.md](frontend/README.md) | React/Vite SPA — chat UI, system prompt, provider selection |
+| **Flutter Frontend** | [flutter_frontend/README.md](flutter_frontend/README.md) | Flutter mobile/desktop app — chat UI, Dynatrace RUM instrumentation |
 | **Load generator** | [load_gen/README.md](load_gen/README.md) | Async load generator — stress testing, latency stats, Dynatrace export |
 
 Each README covers environment variables, configuration, and how to run.
@@ -33,7 +34,7 @@ The application instruments all components with observability telemetry, providi
 
 ### React Frontend (Dynatrace RUM)
 
-- **CDN script tag** in `index.html` provides automatic browser monitoring
+- **Dynatrace RUM JavaScript tag** injected into `index.html` via the `VITE_DYNATRACE_RUM_URL` environment variable at build time
 - Captures page loads, user sessions, and frontend errors without manual instrumentation
 
 ### Flutter Frontend (Dynatrace RUM)

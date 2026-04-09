@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useConfig } from '../context/ConfigContext';
 
 /**
  * Core chat hook.
@@ -6,10 +7,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
  * Returns:
  *   messages       – array of { role: 'user'|'assistant', content: string }
  *   isStreaming     – true while a response is being received
- *   systemPrompt    – current system prompt string
- *   setSystemPrompt – update the system prompt (takes effect on the next send)
  *   sendMessage     – async fn(text: string)
  *   clearHistory    – clears UI state and server-side session memory
+ *   suggestions     – array of follow-up question strings
  */
 function generateSessionId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -28,17 +28,17 @@ export function useChat() {
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
-  const [systemPrompt, setSystemPrompt] = useState(
-    'You are a helpful, knowledgeable, and friendly AI assistant.',
-  );
-  const [llmProvider, setLlmProvider] = useState('nim_api');
+
+  // Get config from context (server-side configuration)
+  const { appConfig } = useConfig();
 
   const fetchStarterSuggestions = useCallback(async () => {
     try {
+      // Server uses its own config if we don't override
       const response = await fetch('/api/chat/starters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system_prompt: systemPrompt, provider: llmProvider }),
+        body: JSON.stringify({}),
       });
       if (!response.ok) return;
       const data = await response.json();
@@ -46,17 +46,15 @@ export function useChat() {
     } catch {
       // Starter suggestions are best-effort — never break the UI.
     }
-  }, [systemPrompt, llmProvider]);
+  }, []);
 
-  // Fetch starter suggestions on mount and when the system prompt changes,
+  // Fetch starter suggestions on mount and when app config changes,
   // but only while no conversation is in progress.
   useEffect(() => {
     if (messages.length === 0) {
       fetchStarterSuggestions();
     }
-  }, [systemPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
-  // ^ intentionally omits fetchStarterSuggestions and messages —
-  //   this fires only on systemPrompt changes; clearHistory() handles the post-clear fetch.
+  }, [appConfig.system_prompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendMessage = useCallback(
     async (text) => {
@@ -74,19 +72,28 @@ export function useChat() {
       setIsStreaming(true);
 
       try {
+        // Server uses its own config — we just send the session/message
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             session_id: sessionId,
             message: text.trim(),
-            system_prompt: systemPrompt,
-            provider: llmProvider,
           }),
         });
 
         if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
+          // Try to parse error detail from response
+          let errorMsg = 'Sorry, something went wrong. Please try again.';
+          try {
+            const errorData = await response.json();
+            if (errorData.detail) {
+              errorMsg = errorData.detail;
+            }
+          } catch {
+            // If parsing fails, use default message
+          }
+          throw new Error(errorMsg);
         }
 
         const data = await response.json();
@@ -103,7 +110,7 @@ export function useChat() {
           const last = updated[updated.length - 1];
           updated[updated.length - 1] = {
             ...last,
-            content: 'Sorry, something went wrong. Please try again.',
+            content: err.message || 'Sorry, something went wrong. Please try again.',
           };
           return updated;
         });
@@ -112,7 +119,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [isStreaming, sessionId, systemPrompt, llmProvider],
+    [isStreaming, sessionId],
   );
 
   const clearHistory = useCallback(async () => {
@@ -126,5 +133,5 @@ export function useChat() {
     fetchStarterSuggestions();
   }, [sessionId, fetchStarterSuggestions]);
 
-  return { messages, isStreaming, suggestions, systemPrompt, setSystemPrompt, llmProvider, setLlmProvider, sendMessage, clearHistory };
+  return { messages, isStreaming, suggestions, sendMessage, clearHistory };
 }

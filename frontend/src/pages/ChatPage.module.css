@@ -1,0 +1,77 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #0066cc;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.configLink {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  border-radius: 12px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.configLink:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.clearBtn {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  border-radius: 12px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clearBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.chaosBanner {
+  background: #fff3cd;
+  color: #856404;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  text-align: center;
+  border-bottom: 1px solid #ffc107;
+}
+
+.chaosLink {
+  color: #856404;
+  font-weight: 600;
+}

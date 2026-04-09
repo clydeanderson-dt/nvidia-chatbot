@@ -1,0 +1,41 @@
+import { Link } from 'react-router-dom';
+import { useChat } from '../hooks/useChat';
+import { useConfig } from '../context/ConfigContext';
+import { ChatWindow } from '../components/ChatWindow';
+import { InputBar } from '../components/InputBar';
+import { SuggestionChips } from '../components/SuggestionChips';
+import styles from './ChatPage.module.css';
+
+export function ChatPage() {
+  const { messages, isStreaming, suggestions, sendMessage, clearHistory } = useChat();
+  const { isAnyChaosActive } = useConfig();
+
+  return (
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>AI Chatbot</h1>
+        <div className={styles.headerActions}>
+          <Link to="/config" className={styles.configLink}>
+            Settings
+          </Link>
+          <button className={styles.clearBtn} onClick={clearHistory} title="Clear conversation">
+            Clear
+          </button>
+        </div>
+      </header>
+
+      {isAnyChaosActive && (
+        <div className={styles.chaosBanner}>
+          ⚠️ Chaos mode active — some requests may fail or be delayed.{' '}
+          <Link to="/config" className={styles.chaosLink}>Configure</Link>
+        </div>
+      )}
+
+      <ChatWindow messages={messages} isStreaming={isStreaming} />
+
+      <SuggestionChips suggestions={suggestions} onSelect={sendMessage} />
+
+      <InputBar onSend={sendMessage} isStreaming={isStreaming} />
+    </div>
+  );
+}
