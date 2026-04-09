@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -89,9 +90,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
           'Configuration',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: UserInteractionWidget(
+          customName: 'Back button',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
       ),
       body: config.loading
@@ -136,14 +140,17 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _systemPromptController,
-                          maxLines: 4,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Enter the system prompt / persona...',
+                        UserInteractionWidget(
+                          customName: 'System prompt config field',
+                          child: TextField(
+                            controller: _systemPromptController,
+                            maxLines: 4,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Enter the system prompt / persona...',
+                            ),
+                            onChanged: (_) => _checkDirty(config),
                           ),
-                          onChanged: (_) => _checkDirty(config),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -162,17 +169,23 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           child: Row(
                             children: [
                               Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('NVIDIA NIM API', style: TextStyle(fontSize: 14)),
-                                  value: 'nim_api',
-                                  contentPadding: EdgeInsets.zero,
+                                child: UserInteractionWidget(
+                                  customName: 'Select NVIDIA NIM API',
+                                  child: RadioListTile<String>(
+                                    title: const Text('NVIDIA NIM API', style: TextStyle(fontSize: 14)),
+                                    value: 'nim_api',
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ),
                               Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('Self-Hosted NIM', style: TextStyle(fontSize: 14)),
-                                  value: 'self_hosted',
-                                  contentPadding: EdgeInsets.zero,
+                                child: UserInteractionWidget(
+                                  customName: 'Select self-hosted NIM',
+                                  child: RadioListTile<String>(
+                                    title: const Text('Self-Hosted NIM', style: TextStyle(fontSize: 14)),
+                                    value: 'self_hosted',
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ),
                             ],
@@ -181,9 +194,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isDirty ? () => _saveAppSettings(config) : null,
-                            child: const Text('Save App Settings'),
+                          child: UserInteractionWidget(
+                            customName: 'Save app settings button',
+                            child: ElevatedButton(
+                              onPressed: _isDirty ? () => _saveAppSettings(config) : null,
+                              child: const Text('Save App Settings'),
+                            ),
                           ),
                         ),
                       ],

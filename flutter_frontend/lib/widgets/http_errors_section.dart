@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 
 import '../providers/config_provider.dart';
@@ -16,41 +17,50 @@ class HttpErrorsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // HTTP 500 Rate
-        _SliderField(
-          label: 'HTTP 500 Rate',
-          value: chaos.http500Rate * 100,
-          min: 0,
-          max: 100,
-          divisions: 100,
-          suffix: '%',
-          hint: 'Probability of HTTP 500 Internal Server Error',
-          onChanged: (v) => config.updateChaosConfig({'http_500_rate': v / 100}),
+        UserInteractionWidget(
+          customName: 'HTTP 500 rate slider',
+          child: _SliderField(
+            label: 'HTTP 500 Rate',
+            value: chaos.http500Rate * 100,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            suffix: '%',
+            hint: 'Probability of HTTP 500 Internal Server Error',
+            onChanged: (v) => config.updateChaosConfig({'http_500_rate': v / 100}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // HTTP 503 Rate
-        _SliderField(
-          label: 'HTTP 503 Rate',
-          value: chaos.http503Rate * 100,
-          min: 0,
-          max: 100,
-          divisions: 100,
-          suffix: '%',
-          hint: 'Probability of HTTP 503 Service Unavailable',
-          onChanged: (v) => config.updateChaosConfig({'http_503_rate': v / 100}),
+        UserInteractionWidget(
+          customName: 'HTTP 503 rate slider',
+          child: _SliderField(
+            label: 'HTTP 503 Rate',
+            value: chaos.http503Rate * 100,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            suffix: '%',
+            hint: 'Probability of HTTP 503 Service Unavailable',
+            onChanged: (v) => config.updateChaosConfig({'http_503_rate': v / 100}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // Session Error Rate
-        _SliderField(
-          label: 'Session Error Rate',
-          value: chaos.sessionErrorRate * 100,
-          min: 0,
-          max: 100,
-          divisions: 100,
-          suffix: '%',
-          hint: 'Probability of session-related errors',
-          onChanged: (v) => config.updateChaosConfig({'session_error_rate': v / 100}),
+        UserInteractionWidget(
+          customName: 'Session error rate slider',
+          child: _SliderField(
+            label: 'Session Error Rate',
+            value: chaos.sessionErrorRate * 100,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            suffix: '%',
+            hint: 'Probability of session-related errors',
+            onChanged: (v) => config.updateChaosConfig({'session_error_rate': v / 100}),
+          ),
         ),
       ],
     );

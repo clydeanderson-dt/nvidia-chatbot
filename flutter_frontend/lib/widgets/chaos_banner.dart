@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 
 /// Warning banner displayed when chaos engineering is active.
@@ -15,9 +16,11 @@ class ChaosBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return UserInteractionWidget(
+      customName: 'Chaos warning banner',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -43,6 +46,7 @@ class ChaosBanner extends StatelessWidget {
             Icon(Icons.chevron_right, color: Colors.orange[700], size: 20),
           ],
         ),
+      ),
       ),
     );
   }

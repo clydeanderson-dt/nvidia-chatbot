@@ -90,21 +90,24 @@ class _InputBarState extends State<InputBar> {
             const SizedBox(width: 8),
             SizedBox(
               height: 44,
-              child: ElevatedButton(
-                onPressed: widget.isStreaming ? null : () => _handleSend('Tap send button'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0066CC),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+              child: UserInteractionWidget(
+                customName: 'Send message button',
+                child: ElevatedButton(
+                  onPressed: widget.isStreaming ? null : () => _handleSend('Tap send button'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0066CC),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  textStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  child: Text(widget.isStreaming ? '…' : 'Send'),
                 ),
-                child: Text(widget.isStreaming ? '…' : 'Send'),
               ),
             ),
           ],

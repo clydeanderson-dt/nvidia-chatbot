@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 
 import '../models/chaos_config.dart';
@@ -87,10 +88,12 @@ class _PresetButton extends StatelessWidget {
       borderColor = Colors.grey[300]!;
     }
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
+    return UserInteractionWidget(
+      customName: 'Chaos preset: ${_capitalize(preset.name)}',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
         width: 160,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -126,6 +129,7 @@ class _PresetButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

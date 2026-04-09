@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,12 +38,17 @@ class _ChatScreenState extends State<ChatScreen> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () => Navigator.pushNamed(context, '/config'),
+          UserInteractionWidget(
+            customName: 'Settings button',
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+              onPressed: () => Navigator.pushNamed(context, '/config'),
+            ),
           ),
-          TextButton(
+          UserInteractionWidget(
+            customName: 'Clear conversation button',
+            child: TextButton(
             onPressed: () async {
               // Dynatrace RUM (Classic) - not necessary for RUM on Grail
               // https://pub.dev/packages/dynatrace_flutter_plugin#create-custom-actions
@@ -70,6 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
               textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             child: const Text('Clear'),
+            ),
           ),
           const SizedBox(width: 12),
         ],

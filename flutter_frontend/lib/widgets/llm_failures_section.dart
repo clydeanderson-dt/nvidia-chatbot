@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 
 import '../providers/config_provider.dart';
@@ -16,50 +17,62 @@ class LlmFailuresSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // LLM Delay
-        _SliderField(
-          label: 'LLM Delay',
-          value: chaos.llmDelayMs.toDouble(),
-          min: 0,
-          max: 10000,
-          divisions: 100,
-          suffix: 'ms',
-          hint: 'Delay before LLM responds',
-          onChanged: (v) => config.updateChaosConfig({'llm_delay_ms': v.toInt()}),
+        UserInteractionWidget(
+          customName: 'LLM delay slider',
+          child: _SliderField(
+            label: 'LLM Delay',
+            value: chaos.llmDelayMs.toDouble(),
+            min: 0,
+            max: 10000,
+            divisions: 100,
+            suffix: 'ms',
+            hint: 'Delay before LLM responds',
+            onChanged: (v) => config.updateChaosConfig({'llm_delay_ms': v.toInt()}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // LLM Error Rate
-        _SliderField(
-          label: 'LLM Error Rate',
-          value: chaos.llmErrorRate * 100,
-          min: 0,
-          max: 100,
-          divisions: 100,
-          suffix: '%',
-          hint: 'Probability of LLM call failure',
-          onChanged: (v) => config.updateChaosConfig({'llm_error_rate': v / 100}),
+        UserInteractionWidget(
+          customName: 'LLM error rate slider',
+          child: _SliderField(
+            label: 'LLM Error Rate',
+            value: chaos.llmErrorRate * 100,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            suffix: '%',
+            hint: 'Probability of LLM call failure',
+            onChanged: (v) => config.updateChaosConfig({'llm_error_rate': v / 100}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // Empty Response Rate
-        _SliderField(
-          label: 'Empty Response Rate',
-          value: chaos.emptyResponseRate * 100,
-          min: 0,
-          max: 100,
-          divisions: 100,
-          suffix: '%',
-          hint: 'Probability of empty LLM response',
-          onChanged: (v) => config.updateChaosConfig({'empty_response_rate': v / 100}),
+        UserInteractionWidget(
+          customName: 'Empty response rate slider',
+          child: _SliderField(
+            label: 'Empty Response Rate',
+            value: chaos.emptyResponseRate * 100,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            suffix: '%',
+            hint: 'Probability of empty LLM response',
+            onChanged: (v) => config.updateChaosConfig({'empty_response_rate': v / 100}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // Rate Limit Toggle
-        _SwitchField(
-          label: 'Rate Limiting',
-          value: chaos.rateLimitEnabled,
-          hint: 'Return 429 after ${chaos.rateLimitAfterN} requests',
-          onChanged: (v) => config.updateChaosConfig({'rate_limit_enabled': v}),
+        UserInteractionWidget(
+          customName: 'Rate limiting toggle',
+          child: _SwitchField(
+            label: 'Rate Limiting',
+            value: chaos.rateLimitEnabled,
+            hint: 'Return 429 after ${chaos.rateLimitAfterN} requests',
+            onChanged: (v) => config.updateChaosConfig({'rate_limit_enabled': v}),
+          ),
         ),
         if (chaos.rateLimitEnabled) ...[
           const SizedBox(height: 8),
@@ -70,20 +83,23 @@ class LlmFailuresSection extends StatelessWidget {
                 const Text('Limit after ', style: TextStyle(fontSize: 14)),
                 SizedBox(
                   width: 60,
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      border: OutlineInputBorder(),
+                  child: UserInteractionWidget(
+                    customName: 'Rate limit threshold input',
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      controller: TextEditingController(text: chaos.rateLimitAfterN.toString()),
+                      onSubmitted: (v) {
+                        final n = int.tryParse(v);
+                        if (n != null && n > 0) {
+                          config.updateChaosConfig({'rate_limit_after_n': n});
+                        }
+                      },
                     ),
-                    controller: TextEditingController(text: chaos.rateLimitAfterN.toString()),
-                    onSubmitted: (v) {
-                      final n = int.tryParse(v);
-                      if (n != null && n > 0) {
-                        config.updateChaosConfig({'rate_limit_after_n': n});
-                      }
-                    },
                   ),
                 ),
                 const Text(' requests', style: TextStyle(fontSize: 14)),
@@ -94,20 +110,26 @@ class LlmFailuresSection extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Hallucination Toggle
-        _SwitchField(
-          label: 'Hallucination',
-          value: chaos.hallucinationEnabled,
-          hint: 'Inject hallucination marker text',
-          onChanged: (v) => config.updateChaosConfig({'hallucination_enabled': v}),
+        UserInteractionWidget(
+          customName: 'Hallucination toggle',
+          child: _SwitchField(
+            label: 'Hallucination',
+            value: chaos.hallucinationEnabled,
+            hint: 'Inject hallucination marker text',
+            onChanged: (v) => config.updateChaosConfig({'hallucination_enabled': v}),
+          ),
         ),
         const SizedBox(height: 16),
 
         // Token Limit Error Toggle
-        _SwitchField(
-          label: 'Token Limit Error',
-          value: chaos.tokenLimitErrorEnabled,
-          hint: 'Simulate token/context limit errors',
-          onChanged: (v) => config.updateChaosConfig({'token_limit_error_enabled': v}),
+        UserInteractionWidget(
+          customName: 'Token limit error toggle',
+          child: _SwitchField(
+            label: 'Token Limit Error',
+            value: chaos.tokenLimitErrorEnabled,
+            hint: 'Simulate token/context limit errors',
+            onChanged: (v) => config.updateChaosConfig({'token_limit_error_enabled': v}),
+          ),
         ),
       ],
     );

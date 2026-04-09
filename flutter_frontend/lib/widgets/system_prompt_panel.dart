@@ -118,18 +118,21 @@ class _SystemPromptPanelState extends State<SystemPromptPanel> {
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: _isDirty ? _handleSet : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0066CC),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                UserInteractionWidget(
+                  customName: 'Set system prompt button',
+                  child: ElevatedButton(
+                    onPressed: _isDirty ? _handleSet : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0066CC),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                     ),
+                    child: const Text('Set'),
                   ),
-                  child: const Text('Set'),
                 ),
               ],
             ),

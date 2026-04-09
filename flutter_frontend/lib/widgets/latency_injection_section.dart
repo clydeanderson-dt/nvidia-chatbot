@@ -1,3 +1,4 @@
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 
 import '../providers/config_provider.dart';
@@ -16,15 +17,18 @@ class LatencyInjectionSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Fixed Delay
-        _SliderField(
-          label: 'Fixed Delay',
-          value: chaos.fixedDelayMs.toDouble(),
-          min: 0,
-          max: 5000,
-          divisions: 50,
-          suffix: 'ms',
-          hint: 'Fixed delay added to all responses',
-          onChanged: (v) => config.updateChaosConfig({'fixed_delay_ms': v.toInt()}),
+        UserInteractionWidget(
+          customName: 'Fixed delay slider',
+          child: _SliderField(
+            label: 'Fixed Delay',
+            value: chaos.fixedDelayMs.toDouble(),
+            min: 0,
+            max: 5000,
+            divisions: 50,
+            suffix: 'ms',
+            hint: 'Fixed delay added to all responses',
+            onChanged: (v) => config.updateChaosConfig({'fixed_delay_ms': v.toInt()}),
+          ),
         ),
         const SizedBox(height: 20),
 
@@ -37,18 +41,24 @@ class LatencyInjectionSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _NumberField(
-                label: 'Min (ms)',
-                value: chaos.randomDelayMinMs,
-                onChanged: (v) => config.updateChaosConfig({'random_delay_min_ms': v}),
+              child: UserInteractionWidget(
+                customName: 'Random delay min input',
+                child: _NumberField(
+                  label: 'Min (ms)',
+                  value: chaos.randomDelayMinMs,
+                  onChanged: (v) => config.updateChaosConfig({'random_delay_min_ms': v}),
+                ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _NumberField(
-                label: 'Max (ms)',
-                value: chaos.randomDelayMaxMs,
-                onChanged: (v) => config.updateChaosConfig({'random_delay_max_ms': v}),
+              child: UserInteractionWidget(
+                customName: 'Random delay max input',
+                child: _NumberField(
+                  label: 'Max (ms)',
+                  value: chaos.randomDelayMaxMs,
+                  onChanged: (v) => config.updateChaosConfig({'random_delay_max_ms': v}),
+                ),
               ),
             ),
           ],
@@ -69,29 +79,35 @@ class LatencyInjectionSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _NumberField(
-                label: 'Spike (ms)',
-                value: chaos.spikeDelayMs,
-                onChanged: (v) => config.updateChaosConfig({'spike_delay_ms': v}),
+              child: UserInteractionWidget(
+                customName: 'Spike delay input',
+                child: _NumberField(
+                  label: 'Spike (ms)',
+                  value: chaos.spikeDelayMs,
+                  onChanged: (v) => config.updateChaosConfig({'spike_delay_ms': v}),
+                ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Probability: ${(chaos.spikeProbability * 100).toInt()}%',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  Slider(
-                    value: chaos.spikeProbability * 100,
-                    min: 0,
-                    max: 100,
-                    divisions: 100,
-                    onChanged: (v) => config.updateChaosConfig({'spike_probability': v / 100}),
-                  ),
-                ],
+              child: UserInteractionWidget(
+                customName: 'Spike probability slider',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Probability: ${(chaos.spikeProbability * 100).toInt()}%',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Slider(
+                      value: chaos.spikeProbability * 100,
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      onChanged: (v) => config.updateChaosConfig({'spike_probability': v / 100}),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
