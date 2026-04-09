@@ -82,16 +82,29 @@ pushd "$INSTALL_DIR/frontend" >/dev/null
 log "Installing frontend dependencies..."
 npm ci
 
-# Ensure .env.local exists so VITE_DYNATRACE_RUM_URL is available at build time.
+# Prompt for Dynatrace RUM URL if .env.local doesn't exist
 if [[ ! -f .env.local ]]; then
-    log "Creating frontend .env.local from example — fill in the Dynatrace RUM URL for browser monitoring."
-    cp .env.example .env.local
+    echo ""
+    echo "=========================================="
+    echo "  Dynatrace Real User Monitoring (optional)"
+    echo "=========================================="
+    echo "The frontend can send browser telemetry to Dynatrace."
+    echo "Get your JS tag URL from:"
+    echo "  Dynatrace > Web Applications > Your App > ... menu > Edit > Setup > Code snippet"
+    echo ""
+    echo "Example: https://js-cdn.dynatracelabs.com/jstag/abc123/456def/complete.js"
+    echo ""
+    read -p "Enter Dynatrace RUM JavaScript tag URL (or press Enter to skip): " rum_url
+    
+    # Create .env.local with the provided or empty URL
+    if [[ -n "$rum_url" ]]; then
+        echo "VITE_DYNATRACE_RUM_URL=$rum_url" > .env.local
+        log "Dynatrace RUM configured."
+    else
+        echo "VITE_DYNATRACE_RUM_URL=" > .env.local
+        log "Dynatrace RUM skipped — you can add it later and rebuild."
+    fi
     chmod 600 .env.local
-    echo ""
-    echo "  *** Edit $INSTALL_DIR/frontend/.env.local and set:"
-    echo "      VITE_DYNATRACE_RUM_URL"
-    echo "      (Dynatrace RUM is optional — the app works without it)"
-    echo ""
 fi
 
 log "Building frontend static assets..."
@@ -173,6 +186,11 @@ echo "     then: sudo nginx -t && sudo systemctl reload nginx"
 echo "  4. sudo systemctl start chatbot"
 echo "  5. curl http://localhost/api/health   # should return {\"status\":\"ok\"}"
 echo "  6. sudo systemctl start load_gen"
+echo ""
+echo "  To rebuild the frontend with new Dynatrace RUM settings:"
+echo "    1. Edit $INSTALL_DIR/frontend/.env.local"
+echo "    2. cd $INSTALL_DIR/frontend && npm run build"
+echo "    3. sudo cp -r dist/. $FRONTEND_WEBROOT/"
 echo ""
 echo "  Service logs:"
 echo "    journalctl -u chatbot  -f"
