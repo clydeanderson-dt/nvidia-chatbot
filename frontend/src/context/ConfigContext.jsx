@@ -57,24 +57,6 @@ export function ConfigProvider({ children }) {
     fetchConfigs();
   }, []);
 
-  // Poll chaos config periodically to sync across frontends
-  useEffect(() => {
-    async function pollChaosConfig() {
-      try {
-        const res = await fetch('/api/chaos');
-        if (res.ok) {
-          setChaosConfig(await res.json());
-        }
-      } catch (err) {
-        // Silent fail - don't spam console on network errors
-      }
-    }
-
-    // Poll every 5 seconds
-    const interval = setInterval(pollChaosConfig, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Refetch chaos config when tab becomes visible
   useEffect(() => {
     async function handleVisibilityChange() {
@@ -158,6 +140,17 @@ export function ConfigProvider({ children }) {
     return null;
   }, []);
 
+  const refreshChaosConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/chaos');
+      if (res.ok) {
+        setChaosConfig(await res.json());
+      }
+    } catch (err) {
+      // Silent fail
+    }
+  }, []);
+
   const isAnyChaosActive = 
     chaosConfig.llm_delay_ms > 0 ||
     chaosConfig.llm_error_rate > 0 ||
@@ -185,6 +178,7 @@ export function ConfigProvider({ children }) {
         updateChaosConfig,
         resetChaosConfig,
         applyPreset,
+        refreshChaosConfig,
       }}
     >
       {children}

@@ -30,7 +30,7 @@ export function useChat() {
   const [suggestions, setSuggestions] = useState([]);
 
   // Get config from context (server-side configuration)
-  const { appConfig } = useConfig();
+  const { appConfig, refreshChaosConfig } = useConfig();
 
   const fetchStarterSuggestions = useCallback(async () => {
     try {
@@ -103,6 +103,8 @@ export function useChat() {
           return updated;
         });
         setSuggestions(data.suggestions ?? []);
+        // Refresh chaos config after receiving response
+        refreshChaosConfig();
       } catch (err) {
         console.error('Chat request failed:', err);
         setMessages((prev) => {
@@ -119,7 +121,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [isStreaming, sessionId],
+    [isStreaming, sessionId, refreshChaosConfig],
   );
 
   const clearHistory = useCallback(async () => {
@@ -131,7 +133,9 @@ export function useChat() {
     setMessages([]);
     setSuggestions([]);
     fetchStarterSuggestions();
-  }, [sessionId, fetchStarterSuggestions]);
+    // Refresh chaos config after clearing
+    refreshChaosConfig();
+  }, [sessionId, fetchStarterSuggestions, refreshChaosConfig]);
 
   return { messages, isStreaming, suggestions, sendMessage, clearHistory };
 }

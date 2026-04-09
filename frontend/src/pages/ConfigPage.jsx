@@ -88,7 +88,13 @@ export function ConfigPage() {
     updateAppConfig,
     updateChaosConfig,
     applyPreset,
+    refreshChaosConfig,
   } = useConfig();
+
+  // Refresh chaos config when page loads
+  useEffect(() => {
+    refreshChaosConfig();
+  }, [refreshChaosConfig]);
 
   // Local draft state for form fields
   const [systemPrompt, setSystemPrompt] = useState(appConfig.system_prompt);

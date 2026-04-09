@@ -8,8 +8,22 @@ import '../widgets/chat_window.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/suggestion_chips.dart';
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh chaos config when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ConfigProvider>().refreshChaosConfig();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useConfig } from '../context/ConfigContext';
 import { ChatWindow } from '../components/ChatWindow';
@@ -8,7 +9,12 @@ import styles from './ChatPage.module.css';
 
 export function ChatPage() {
   const { messages, isStreaming, suggestions, sendMessage, clearHistory } = useChat();
-  const { isAnyChaosActive } = useConfig();
+  const { isAnyChaosActive, refreshChaosConfig } = useConfig();
+
+  // Refresh chaos config when page loads
+  useEffect(() => {
+    refreshChaosConfig();
+  }, [refreshChaosConfig]);
 
   return (
     <div className={styles.shell}>

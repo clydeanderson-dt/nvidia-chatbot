@@ -60,6 +60,8 @@ class ChatProvider extends ChangeNotifier {
       ));
       messages.last.content = response.reply;
       suggestions = response.suggestions;
+      // Refresh chaos config after receiving response
+      _configProvider?.refreshChaosConfig();
     } catch (e) {
       // Extract error message from exception if available
       String errorMsg = 'Sorry, something went wrong. Please try again.';
@@ -87,6 +89,8 @@ class ChatProvider extends ChangeNotifier {
     suggestions = [];
     notifyListeners();
     fetchStarterSuggestions();
+    // Refresh chaos config after clearing
+    _configProvider?.refreshChaosConfig();
   }
 
   Future<void> fetchStarterSuggestions() async {

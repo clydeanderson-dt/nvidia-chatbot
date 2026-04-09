@@ -25,6 +25,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
   void initState() {
     super.initState();
     _systemPromptController = TextEditingController();
+    // Refresh chaos config when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ConfigProvider>().refreshChaosConfig();
+    });
   }
 
   @override

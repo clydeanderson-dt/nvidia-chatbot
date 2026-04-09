@@ -12,8 +12,8 @@ import '../services/api_service.dart';
 /// Fetches configuration from the backend on init and provides methods
 /// to update settings. All state is in-memory only (no persistence).
 /// 
-/// Chaos config is polled every 5 seconds and refetched when the app resumes
-/// to stay in sync with changes made from other frontends.
+/// Chaos config is refetched when the app resumes to stay in sync
+/// with changes made from other frontends.
 class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ApiService _api = ApiService();
 
@@ -21,7 +21,6 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
   ChaosConfig _chaosConfig = const ChaosConfig();
   bool _loading = false;
   String? _error;
-  Timer? _pollTimer;
 
   // Getters
   AppConfig get appConfig => _appConfig;
@@ -38,10 +37,6 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
     loadConfig();
     // Add app lifecycle observer for refetch on resume
     WidgetsBinding.instance.addObserver(this);
-    // Poll chaos config every 5 seconds to sync across frontends
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _pollChaosConfig();
-    });
   }
 
   @override
@@ -54,7 +49,6 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -82,9 +76,9 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Poll chaos config only (silent, no loading state).
-  /// Used by periodic timer to sync with changes from other frontends.
-  Future<void> _pollChaosConfig() async {
+  /// Refresh chaos config only (silent, no loading state).
+  /// Can be called manually when needed (e.g., after chat actions).
+  Future<void> refreshChaosConfig() async {
     try {
       final config = await _api.getChaosConfig();
       if (_chaosConfig != config) {
@@ -92,7 +86,7 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
         notifyListeners();
       }
     } catch (e) {
-      // Silent fail - don't spam logs on network errors during polling
+      // Silent fail - don't spam logs on network errors
     }
   }
 
