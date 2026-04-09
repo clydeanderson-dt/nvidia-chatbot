@@ -23,7 +23,7 @@ Type=simple
 User=www-data
 WorkingDirectory=/opt/chatbot/load_gen
 EnvironmentFile=/opt/chatbot/load_gen/.env
-ExecStart=/opt/chatbot/load_gen_venv/bin/python load_gen.py
+ExecStart=/opt/chatbot/venv/bin/python load_gen.py
 Restart=on-failure
 RestartSec=10
 

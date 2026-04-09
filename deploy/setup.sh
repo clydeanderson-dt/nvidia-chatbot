@@ -57,8 +57,9 @@ rsync -a --exclude='.venv' --exclude='__pycache__' --exclude='node_modules' --ex
 # ---------------------------------------------------------------------------
 log "Setting up backend virtualenv..."
 python3 -m venv "$INSTALL_DIR/venv"
-"$INSTALL_DIR/venv/bin/pip" install --quiet --upgrade pip
-"$INSTALL_DIR/venv/bin/pip" install --quiet -r "$INSTALL_DIR/backend/requirements.txt"
+log "Installing backend dependencies..."
+"$INSTALL_DIR/venv/bin/pip" install --upgrade pip >/dev/null
+"$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/backend/requirements.txt"
 
 # Prompt for .env if it doesn't already exist.
 if [[ ! -f "$INSTALL_DIR/backend/.env" ]]; then
@@ -78,7 +79,8 @@ fi
 # ---------------------------------------------------------------------------
 log "Building frontend..."
 pushd "$INSTALL_DIR/frontend" >/dev/null
-npm ci --silent
+log "Installing frontend dependencies..."
+npm ci
 
 # Ensure .env.local exists so VITE_DYNATRACE_RUM_URL is available at build time.
 if [[ ! -f .env.local ]]; then
@@ -92,7 +94,8 @@ if [[ ! -f .env.local ]]; then
     echo ""
 fi
 
-npm run build --silent
+log "Building frontend static assets..."
+npm run build
 popd >/dev/null
 
 log "Copying frontend build to $FRONTEND_WEBROOT..."
@@ -129,12 +132,10 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Load generator — Python virtualenv + dependencies
+# 8. Load generator — install dependencies into shared venv
 # ---------------------------------------------------------------------------
-log "Setting up load_gen virtualenv..."
-python3 -m venv "$INSTALL_DIR/load_gen_venv"
-"$INSTALL_DIR/load_gen_venv/bin/pip" install --quiet --upgrade pip
-"$INSTALL_DIR/load_gen_venv/bin/pip" install --quiet -r "$INSTALL_DIR/load_gen/requirements.txt"
+log "Installing load_gen dependencies..."
+"$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/load_gen/requirements.txt" >/dev/null
 
 if [[ ! -f "$INSTALL_DIR/load_gen/.env" ]]; then
     log "Creating load_gen .env from example — fill in the real values before starting the service."
