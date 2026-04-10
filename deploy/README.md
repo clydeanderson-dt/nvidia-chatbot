@@ -40,7 +40,7 @@ uvicorn main:app --reload
 | `NVIDIA_API_KEY` | **Yes** | Your `nvapi-…` key |
 | `DYNATRACE_OTLP_ENDPOINT` | No | e.g. `https://abc12345.live.dynatrace.com` |
 | `DYNATRACE_API_TOKEN` | No | Dynatrace API token — required if endpoint is set |
-| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins (default: `http://localhost:5173,http://localhost:3000`) |
+| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins (e.g., `http://localhost:5173,http://localhost:3000`). Include protocol, no trailing slashes. |
 | `SELF_HOSTED_NIM_URL` | No | Base URL for a self-hosted NIM instance |
 
 > Dynatrace variables are optional for local development. The server starts with a warning if they are absent.
@@ -177,109 +177,67 @@ cd ~/chatbot-repo
 bash deploy/setup.sh
 ```
 
-The script is **idempotent** — safe to re-run if it fails partway through. It will:
+The script is **fully interactive** and will prompt you for all necessary configuration upfront. You'll be asked for:
+
+1. **NVIDIA API Key** (required) — your `nvapi-...` key
+2. **Dynatrace OTLP Endpoint** (optional) — e.g., `https://abc12345.live.dynatrace.com`
+3. **Dynatrace API Token** (optional) — required if endpoint is provided
+4. **Dynatrace RUM JavaScript tag URL** (optional) — for frontend browser monitoring
+5. **ALLOWED_ORIGINS** (optional) — comma-separated list of allowed CORS origins (e.g., `http://192.168.1.100,https://chatbot.example.com`). Defaults to localhost + your VM IP/hostname. **Note:** Include protocol (`http://` or `https://`) but no trailing slashes.
+6. **Self-hosted NIM URL** (optional) — only if using a self-hosted NIM instance
+7. **Load generator concurrency** (optional) — defaults to 10
+8. **Load generator provider** (optional) — `nim_api` or `self_hosted`, defaults to `nim_api`
+9. **nginx server_name** (optional) — VM IP or hostname (without protocol). Defaults to your VM IP.
+
+The script will then:
 
 1. Install system packages (`python3`, `python3-venv`, `nginx`) and Node 20
 2. Copy the application code to `/opt/chatbot/`
 3. Create Python virtualenvs and install all Python dependencies
-4. Build the React frontend (`npm ci && npm run build`)
-5. Copy the frontend build to `/var/www/chatbot/` and configure nginx
-6. Install and enable the `chatbot` and `load_gen` systemd services
-7. Create stub `.env` files at `/opt/chatbot/backend/.env`, `/opt/chatbot/frontend/.env.local`, and `/opt/chatbot/load_gen/.env`
+4. Create all `.env` files with the values you provided
+5. Build the React frontend (`npm ci && npm run build`)
+6. Copy the frontend build to `/var/www/chatbot/` and configure nginx
+7. Install, enable, and **start** the `chatbot` and `load_gen` systemd services
 
-> **The script will pause and remind you to fill in the `.env` files before starting the backend.**
+The script is **idempotent** — safe to re-run if it fails partway through.
 
----
-
-### Step 3 — Fill in the environment files
-
-#### Backend — `/opt/chatbot/backend/.env`
-
-```bash
-sudo nano /opt/chatbot/backend/.env
-```
-
-| Variable | Required | Description |
-|---|---|---|
-| `NVIDIA_API_KEY` | **Yes** | Your `nvapi-…` key |
-| `DYNATRACE_OTLP_ENDPOINT` | No | e.g. `https://abc12345.live.dynatrace.com` |
-| `DYNATRACE_API_TOKEN` | No | Dynatrace API token |
-| `ALLOWED_ORIGINS` | No | Comma-separated allowed origins — change to `http://<vm-ip>` |
-| `SELF_HOSTED_NIM_URL` | No | Base URL for a self-hosted NIM instance |
-
-#### Load generator — `/opt/chatbot/load_gen/.env`
-
-```bash
-sudo nano /opt/chatbot/load_gen/.env
-```
-
-| Variable | Default | Description |
-|---|---|---|
-| `LOAD_GEN_URL` | `http://localhost:8000` | Backend base URL — leave as-is on the same VM |
-| `LOAD_GEN_CONCURRENCY` | `5` | Number of parallel async workers |
-| `LOAD_GEN_PROVIDER` | `nim_api` | `nim_api` or `self_hosted` |
-| `DYNATRACE_OTLP_ENDPOINT` | — | Same value as the backend |
-| `DYNATRACE_API_TOKEN` | — | Same value as the backend |
-
-#### Frontend — `/opt/chatbot/frontend/.env.local`
-
-```bash
-nano /opt/chatbot/frontend/.env.local
-```
-
-| Variable | Required | Description |
-|---|---|---|
-| `VITE_DYNATRACE_RUM_URL` | No | Full URL to your Dynatrace RUM JavaScript tag. If set, browser monitoring is injected into the frontend at build time. Leave the placeholder if you don't need RUM. |
-
-> **Note:** Changes to `.env.local` require a frontend rebuild. Re-run `bash deploy/setup.sh` or rebuild manually in `/opt/chatbot/frontend/`.
+> **After completion, all services are running and the application is ready to use** — no manual configuration needed!
 
 ---
 
-### Step 4 — Set the server hostname in nginx
-
-```bash
-sudo nano /etc/nginx/sites-available/chatbot
-```
-
-Change `server_name _;` to your VM's IP or hostname:
-```nginx
-server_name 192.168.1.10;   # or chatbot.example.com
-```
-
-Then test and reload:
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-```
-
----
-
-### Step 5 — Start the services
-
-```bash
-sudo systemctl start chatbot
-
-# Verify healthy
-curl http://localhost/api/health
-# Expected: {"status":"ok"}
-
-sudo systemctl start load_gen
-```
-
----
-
-### Step 6 — Verify everything is working
+### Step 3 — Verify everything is working
 
 ```bash
 # All three should show "active (running)"
 sudo systemctl status nginx chatbot load_gen
 
-# Open the chat UI
+# Test the API
+curl http://localhost/api/health
+# Expected: {"status":"ok"}
+
+# Open the chat UI in your browser
 http://<vm-ip>/
 
 # Tail live logs
 journalctl -u chatbot  -f
 journalctl -u load_gen -f
 ```
+
+---
+
+### Configuration Files
+
+If you need to modify the configuration later, the following files were created:
+
+- **Backend:** `/opt/chatbot/backend/.env`
+- **Frontend:** `/opt/chatbot/frontend/.env.local`
+- **Load generator:** `/opt/chatbot/load_gen/.env`
+- **nginx:** `/etc/nginx/sites-available/chatbot`
+
+After editing:
+- Backend/load_gen: `sudo systemctl restart chatbot` or `sudo systemctl restart load_gen`
+- Frontend: Rebuild with `cd /opt/chatbot/frontend && npm run build && sudo cp -r dist/. /var/www/chatbot/`
+- nginx: `sudo nginx -t && sudo systemctl reload nginx`
 
 ---
 
@@ -297,7 +255,12 @@ sudo systemctl restart load_gen
 
 # Update after a code change
 cd ~/chatbot-repo && git pull
-bash deploy/setup.sh
+bash deploy/setup.sh     # Will prompt for config again; press Enter to keep existing values
+sudo systemctl restart chatbot load_gen
+
+# Quick update without re-running full setup
+cd ~/chatbot-repo && git pull
+sudo rsync -a --exclude='.venv' --exclude='__pycache__' --exclude='node_modules' --exclude='dist' . /opt/chatbot/
 sudo systemctl restart chatbot load_gen
 ```
 
@@ -308,16 +271,15 @@ sudo systemctl restart chatbot load_gen
 ```
 /opt/chatbot/
 ├── backend/            FastAPI application
-│   └── .env            ← credentials live here (chmod 600)
+│   └── .env            ← backend credentials (auto-generated, chmod 600)
 ├── frontend/           React source (used only for builds)
-│   └── .env.local      ← Dynatrace RUM URL (chmod 600)
+│   └── .env.local      ← Dynatrace RUM URL (auto-generated, chmod 600)
 ├── load_gen/           Load generator
-│   └── .env            ← load gen config (chmod 600)
-├── venv/               Python venv for the backend
-└── load_gen_venv/      Python venv for the load generator
+│   └── .env            ← load gen config (auto-generated, reuses Dynatrace vars, chmod 600)
+└── venv/               Shared Python venv for backend and load_gen
 
 /var/www/chatbot/       Compiled React static files served by nginx
-/etc/nginx/sites-available/chatbot
+/etc/nginx/sites-available/chatbot  ← nginx config (server_name auto-configured)
 /etc/systemd/system/chatbot.service
 /etc/systemd/system/load_gen.service
 ```
@@ -328,9 +290,10 @@ sudo systemctl restart chatbot load_gen
 
 | Symptom | Check |
 |---|---|
-| `chatbot` fails to start | `journalctl -u chatbot -n 50` — likely a missing or wrong `.env` value |
-| Browser shows nginx 502 | Backend isn't running: `sudo systemctl start chatbot` |
-| Browser shows nginx 404 | Frontend wasn't copied: re-run `setup.sh` or copy `frontend/dist/*` to `/var/www/chatbot/` |
-| Load gen shows all errors | Backend URL wrong in `load_gen/.env`, or backend isn't started yet |
-| `nginx -t` fails | Syntax error in `/etc/nginx/sites-available/chatbot` — check `server_name` line |
+| `chatbot` fails to start | `journalctl -u chatbot -n 50` — likely an invalid NVIDIA API key or Dynatrace credentials |
+| Browser shows nginx 502 | Backend isn't running: `sudo systemctl start chatbot` and check logs |
+| Browser shows nginx 404 | Frontend wasn't built/copied: re-run `setup.sh` |
+| Load gen shows all errors | Backend not started yet or API key invalid |
+| `nginx -t` fails | Syntax error in `/etc/nginx/sites-available/chatbot` |
 | Flutter build fails with Dynatrace error | `dynatrace.config.yaml` missing — copy from `.example` and populate |
+| Script fails at sed step | Your server name contains special characters — the script strips `http://` automatically |
