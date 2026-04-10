@@ -1,4 +1,4 @@
-name: flutter_frontend
+name: ai_assist
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0+1
@@ -19,6 +19,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"  # 1024x1024 recommended
+  remove_alpha_ios: true  # Required for Apple App Store
