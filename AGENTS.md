@@ -265,11 +265,22 @@ Flutter Frontend
 fetch user.events
 | filter frontend.name == "AI_Chatbot_Flutter"
 ```
+```
+fetch user.sessions 
+| filter in(frontend.name, {"AI_Chatbot_Flutter"}) 
+| summarize {sessions = count()}, by:{frontend.name}
+```
+
 
 Frontend
 ```
 fetch user.events
 | filter frontend.name == "AI_Chatbot"
+```
+```
+fetch user.sessions 
+| filter in(frontend.name, {"AI_Chatbot"}) 
+| summarize {sessions = count()}, by:{frontend.name}
 ```
 
 #### Specifying the timeframe
