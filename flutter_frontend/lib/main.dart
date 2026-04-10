@@ -36,9 +36,9 @@ class MainApp extends StatelessWidget {
             foregroundColor: Color.fromRGBO(255, 255, 255, 1),
           ),
         ),
-        // navigatorObservers: [
-        //   DynatraceNavigationObserver(), // https://pub.dev/packages/dynatrace_flutter_plugin#navigation-observer
-        // ],
+        navigatorObservers: [
+          DynatraceNavigationObserver(), // https://pub.dev/packages/dynatrace_flutter_plugin#navigation-observer
+        ],
         initialRoute: '/',
         routes: {
           '/': (context) => const ChatScreen(),
