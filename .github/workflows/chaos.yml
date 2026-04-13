@@ -1,0 +1,64 @@
+name: Random Chaos Engineering
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at midnight UTC daily
+  workflow_dispatch:      # Manual trigger for testing
+
+jobs:
+  random-chaos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Random startup delay (0-8 hours)
+        run: |
+          RANDOM_SECONDS=$((RANDOM % 28800))  # 0 to 8 hours in seconds
+          HOURS=$((RANDOM_SECONDS / 3600))
+          MINUTES=$(((RANDOM_SECONDS % 3600) / 60))
+          echo "Waiting ${HOURS}h ${MINUTES}m before starting chaos..."
+          sleep $RANDOM_SECONDS
+      
+      - name: Select random preset
+        id: preset
+        run: |
+          PRESETS=("slow_llm" "flaky_network" "rate_limited" "degraded")
+          SELECTED=${PRESETS[$RANDOM % ${#PRESETS[@]}]}
+          echo "preset=$SELECTED" >> $GITHUB_OUTPUT
+          echo "Selected preset: $SELECTED"
+      
+      - name: Select random duration (15-90 minutes)
+        id: duration
+        run: |
+          MIN_SECONDS=$((15 * 60))   # 15 minutes
+          MAX_SECONDS=$((90 * 60))   # 90 minutes
+          RANGE=$((MAX_SECONDS - MIN_SECONDS))
+          DURATION=$((MIN_SECONDS + RANDOM % RANGE))
+          MINUTES=$((DURATION / 60))
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "Chaos will run for $MINUTES minutes"
+      
+      - name: Apply chaos preset
+        run: |
+          echo "Applying preset: ${{ steps.preset.outputs.preset }}"
+          curl -X POST -f \
+            "${{ secrets.BACKEND_URL }}/api/chaos/preset/${{ steps.preset.outputs.preset }}" \
+            -H "Content-Type: application/json"
+      
+      - name: Wait for chaos duration
+        run: |
+          echo "Chaos active for $((steps.duration.outputs.duration / 60)) minutes..."
+          sleep ${{ steps.duration.outputs.duration }}
+      
+      - name: Reset to healthy
+        if: always()  # Always runs, even if previous steps fail
+        run: |
+          echo "Resetting to healthy state"
+          curl -X POST -f \
+            "${{ secrets.BACKEND_URL }}/api/chaos/preset/healthy" \
+            -H "Content-Type: application/json"
+      
+      - name: Verify healthy state
+        if: always()
+        run: |
+          curl -X GET \
+            "${{ secrets.BACKEND_URL }}/api/chaos/status" \
+            -H "Content-Type: application/json"
