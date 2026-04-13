@@ -246,6 +246,14 @@ To interact with Dynatrace, you can use either the MCP or dtctl CLI tool.
 ### DQL Tips
 Here are some example queries to show how to filter for this application's telemetry data in Dynatrace.
 
+Before ever running a specific DQL query with a filter, summarize, etc., you MUST run a generic query to understand the structure and available fields that can be used for refining your queries.
+
+For example:
+```
+fetch spans|logs|events
+| limit 10
+```
+
 #### Traces/Spans
 ```
 fetch spans
