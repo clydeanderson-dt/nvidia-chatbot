@@ -2,30 +2,36 @@ name: Random Chaos Engineering
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs at midnight UTC daily
-  workflow_dispatch:      # Manual trigger for testing
+    - cron: '0 */2 * * *'  # Runs every 2 hours (120 minutes)
+  workflow_dispatch:        # Manual trigger for testing
 
 jobs:
-  random-chaos:
+  maybe-start-chaos:
     runs-on: ubuntu-latest
     steps:
-      - name: Random startup delay (0-8 hours)
+      - name: Random decision to start chaos (~8% chance)
+        id: decision
         run: |
-          RANDOM_SECONDS=$((RANDOM % 28800))  # 0 to 8 hours in seconds
-          HOURS=$((RANDOM_SECONDS / 3600))
-          MINUTES=$(((RANDOM_SECONDS % 3600) / 60))
-          echo "Waiting ${HOURS}h ${MINUTES}m before starting chaos..."
-          sleep $RANDOM_SECONDS
+          # 8% chance = roughly 1 event per day (12 runs * 8% ≈ 1)
+          if [ $((RANDOM % 100)) -lt 8 ]; then
+            echo "start=true" >> $GITHUB_OUTPUT
+            echo "🎲 Chaos mode activated!"
+          else
+            echo "start=false" >> $GITHUB_OUTPUT
+            echo "✅ Skipping chaos this cycle"
+          fi
       
       - name: Select random preset
+        if: steps.decision.outputs.start == 'true'
         id: preset
         run: |
           PRESETS=("slow_llm" "flaky_network" "rate_limited" "degraded")
           SELECTED=${PRESETS[$RANDOM % ${#PRESETS[@]}]}
           echo "preset=$SELECTED" >> $GITHUB_OUTPUT
-          echo "Selected preset: $SELECTED"
+          echo "🔥 Selected preset: $SELECTED"
       
       - name: Select random duration (15-90 minutes)
+        if: steps.decision.outputs.start == 'true'
         id: duration
         run: |
           MIN_SECONDS=$((15 * 60))   # 15 minutes
@@ -34,9 +40,10 @@ jobs:
           DURATION=$((MIN_SECONDS + RANDOM % RANGE))
           MINUTES=$((DURATION / 60))
           echo "duration=$DURATION" >> $GITHUB_OUTPUT
-          echo "Chaos will run for $MINUTES minutes"
+          echo "⏱️  Chaos will run for $MINUTES minutes"
       
       - name: Apply chaos preset
+        if: steps.decision.outputs.start == 'true'
         run: |
           echo "Applying preset: ${{ steps.preset.outputs.preset }}"
           curl -X POST -f \
@@ -44,12 +51,14 @@ jobs:
             -H "Content-Type: application/json"
       
       - name: Wait for chaos duration
+        if: steps.decision.outputs.start == 'true'
         run: |
-          echo "Chaos active for $((steps.duration.outputs.duration / 60)) minutes..."
+          MINUTES=$((steps.duration.outputs.duration / 60))
+          echo "Chaos active for $MINUTES minutes..."
           sleep ${{ steps.duration.outputs.duration }}
       
       - name: Reset to healthy
-        if: always()  # Always runs, even if previous steps fail
+        if: always() && steps.decision.outputs.start == 'true'
         run: |
           echo "Resetting to healthy state"
           curl -X POST -f \
@@ -57,8 +66,9 @@ jobs:
             -H "Content-Type: application/json"
       
       - name: Verify healthy state
-        if: always()
+        if: always() && steps.decision.outputs.start == 'true'
         run: |
+          echo "Verifying chaos is disabled..."
           curl -X GET \
             "${{ secrets.BACKEND_URL }}/api/chaos/status" \
             -H "Content-Type: application/json"
