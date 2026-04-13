@@ -12,8 +12,12 @@ jobs:
       - name: Random decision to start chaos (~8% chance)
         id: decision
         run: |
-          # 8% chance = roughly 1 event per day (12 runs * 8% ≈ 1)
-          if [ $((RANDOM % 100)) -lt 8 ]; then
+          # Manual runs always trigger chaos
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "start=true" >> $GITHUB_OUTPUT
+            echo "🎯 Manual chaos trigger activated!"
+          # Scheduled runs: 8% chance = roughly 1 event per day (12 runs * 8% ≈ 1)
+          elif [ $((RANDOM % 100)) -lt 8 ]; then
             echo "start=true" >> $GITHUB_OUTPUT
             echo "🎲 Chaos mode activated!"
           else
