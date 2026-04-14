@@ -2,7 +2,7 @@ name: Random Chaos Engineering
 
 on:
   schedule:
-    - cron: '0 */2 * * *'  # Runs every 2 hours (120 minutes)
+    - cron: '20 */2 * * *'  # Runs every 2 hours (120 minutes)
   workflow_dispatch:        # Manual trigger for testing
 
 jobs:
