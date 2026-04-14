@@ -101,6 +101,9 @@ Common targets for local testing:
 | iOS simulator | `flutter run -d <simulator-id> --dart-define=BASE_URL=http://localhost:8000` |
 | Android emulator | `flutter run -d <emulator-id> --dart-define=BASE_URL=http://10.0.2.2:8000` |
 
+### NOTE: If running a remote backend...
+Run the app with the server's URL instead either using flutter run (e.g. `--dart-define=BASE_URL=http://ec2-77-94-132-15.compute-1.amazonaws.com`) or updating the `defaultValue` in the `config.dart` file.
+
 ---
 
 ## Key behaviours
