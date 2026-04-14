@@ -54,6 +54,49 @@ jobs:
             "${{ secrets.BACKEND_URL }}/api/chaos/preset/${{ steps.preset.outputs.preset }}" \
             -H "Content-Type: application/json"
       
+      - name: Send Dynatrace chaos enabled event
+        if: steps.decision.outputs.start == 'true'
+        run: |
+          PRESET="${{ steps.preset.outputs.preset }}"
+          MINUTES=$((${{ steps.duration.outputs.duration }} / 60))
+          TRIGGER="${{ github.event_name == 'workflow_dispatch' && 'manual' || 'scheduled' }}"
+          
+          # Preset descriptions
+          case "$PRESET" in
+            slow_llm)
+              DESCRIPTION="LLM responses delayed by 5000ms"
+              ;;
+            flaky_network)
+              DESCRIPTION="HTTP 500 errors (30% rate) + random delays (500-2000ms)"
+              ;;
+            rate_limited)
+              DESCRIPTION="Rate limiting enabled after 3 requests"
+              ;;
+            degraded)
+              DESCRIPTION="LLM errors (20% rate) + empty responses (10% rate) + 1000ms delay"
+              ;;
+          esac
+          
+          curl -X POST \
+            "${{ secrets.DYNATRACE_ENVIRONMENT }}/api/v2/events/ingest" \
+            -H "Authorization: Api-Token ${{ secrets.DYNATRACE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "eventType": "CUSTOM_INFO",
+              "title": "Chaos Engineering: '"$PRESET"' activated",
+              "entitySelector": "type(SERVICE),entityName(nvidia-chatbot)",
+              "properties": {
+                "event.title": "Chaos Engineering: '"$PRESET"' activated",
+                "event.description": "Chaos engineering preset '"'$PRESET'"' has been applied for '"$MINUTES"' minutes",
+                "chaos.preset": "'"$PRESET"'",
+                "chaos.duration_minutes": "'"$MINUTES"'",
+                "chaos.trigger": "'"$TRIGGER"'",
+                "chaos.state": "active",
+                "chaos.preset.description": "'"$DESCRIPTION"'"
+              },
+              "timeout": '"$MINUTES"'
+            }'
+      
       - name: Wait for chaos duration
         if: steps.decision.outputs.start == 'true'
         run: |
@@ -68,6 +111,29 @@ jobs:
           curl -X POST -f \
             "${{ secrets.BACKEND_URL }}/api/chaos/preset/healthy" \
             -H "Content-Type: application/json"
+      
+      - name: Send Dynatrace chaos disabled event
+        if: always() && steps.decision.outputs.start == 'true'
+        run: |
+          TRIGGER="${{ github.event_name == 'workflow_dispatch' && 'manual' || 'scheduled' }}"
+          
+          curl -X POST \
+            "${{ secrets.DYNATRACE_ENVIRONMENT }}/api/v2/events/ingest" \
+            -H "Authorization: Api-Token ${{ secrets.DYNATRACE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "eventType": "CUSTOM_INFO",
+              "title": "Chaos Engineering: Reset to healthy",
+              "entitySelector": "type(SERVICE),entityName(nvidia-chatbot)",
+              "properties": {
+                "event.title": "Chaos Engineering: Reset to healthy",
+                "event.description": "Chaos engineering has been disabled, system returned to normal operation",
+                "chaos.preset": "healthy",
+                "chaos.state": "inactive",
+                "chaos.trigger": "'"$TRIGGER"'"
+              },
+              "timeout": 1
+            }'
       
       - name: Verify healthy state
         if: always() && steps.decision.outputs.start == 'true'
