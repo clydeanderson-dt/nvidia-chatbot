@@ -65,8 +65,13 @@ echo ""
 vm_ip=$(hostname -I | awk '{print $1}')
 vm_hostname=$(hostname -f 2>/dev/null || hostname)
 default_origins="http://localhost:5173,http://localhost:3000,http://${vm_ip},http://${vm_hostname}"
-read -p "Enter ALLOWED_ORIGINS [${default_origins}]: " allowed_origins
-allowed_origins=${allowed_origins:-$default_origins}
+echo "Default CORS origins: $default_origins"
+read -p "Enter additional ALLOWED_ORIGINS to include (comma-separated, or press Enter to use defaults only): " additional_origins
+if [[ -n "$additional_origins" ]]; then
+    allowed_origins="${default_origins},${additional_origins}"
+else
+    allowed_origins="$default_origins"
+fi
 
 # Self-hosted NIM URL (optional)
 echo ""
@@ -146,18 +151,20 @@ sudo chown www-data:www-data "$INSTALL_DIR/backend/.env"
 # 5. Frontend — build static assets
 # ---------------------------------------------------------------------------
 log "Building frontend..."
+# Ensure frontend directory is owned by the current user (needed for npm build)
+sudo chown -R "$USER:$USER" "$INSTALL_DIR/frontend"
 pushd "$INSTALL_DIR/frontend" >/dev/null
 log "Installing frontend dependencies..."
 npm ci
 
 # Create .env.local with RUM URL from earlier configuration
 if [[ -n "$rum_url" ]]; then
-    echo "VITE_DYNATRACE_RUM_URL=$rum_url" | sudo tee .env.local >/dev/null
+    echo "VITE_DYNATRACE_RUM_URL=$rum_url" > .env.local
     log "Dynatrace RUM configured."
 else
-    echo "VITE_DYNATRACE_RUM_URL=" | sudo tee .env.local >/dev/null
+    echo "VITE_DYNATRACE_RUM_URL=" > .env.local
 fi
-sudo chmod 600 .env.local
+chmod 600 .env.local
 
 log "Building frontend static assets..."
 npm run build
