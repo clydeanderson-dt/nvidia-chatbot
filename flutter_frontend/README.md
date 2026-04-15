@@ -80,6 +80,8 @@ dart run dynatrace_flutter_plugin
 
 If you do not have Dynatrace credentials, the app will still build and run; the plugin simply will not report telemetry.
 
+#### ⚠️⚠️ NOTE ⚠️⚠️: After running the above command to configure Dynatrace, there will be artifacts (info.plist, build.gradle.kts, etc.) that will be altered and contain sensitive Dynatrace config information. It is essential to ensure this information is not committed.
+
 ---
 
 ## Running locally
