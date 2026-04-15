@@ -14,6 +14,7 @@ class ChatProvider extends ChangeNotifier {
   List<ChatMessage> messages = [];
   bool isStreaming = false;
   List<String> suggestions = [];
+  bool isSuggestionsLoading = false;
 
   // Reference to ConfigProvider for system prompt and LLM provider
   ConfigProvider? _configProvider;
@@ -59,7 +60,14 @@ class ChatProvider extends ChangeNotifier {
         provider: llmProvider,
       ));
       messages.last.content = response.reply;
+      
+      // Set loading state and fetch suggestions
+      isSuggestionsLoading = true;
+      notifyListeners();
+      
       suggestions = response.suggestions;
+      isSuggestionsLoading = false;
+      
       // Refresh chaos config after receiving response
       _configProvider?.refreshChaosConfig();
     } catch (e) {
@@ -93,6 +101,19 @@ class ChatProvider extends ChangeNotifier {
     _configProvider?.refreshChaosConfig();
   }
 
+  /// Reset conversation and fetch new starter suggestions.
+  /// This clears local state and reloads starters without deleting the server session
+  /// unless there are messages to clear.
+  Future<void> resetAndFetchStarters() async {
+    if (messages.isNotEmpty) {
+      // If there's conversation history, clear it from server
+      await clearHistory();
+    } else {
+      // Otherwise just fetch new starters (e.g., if config changed)
+      await fetchStarterSuggestions();
+    }
+  }
+
   Future<void> fetchStarterSuggestions() async {
     debugPrint('fetchStarterSuggestions: entering Dynatrace action');
     // Dynatrace RUM (Classic) - not necessary for RUM on Grail
@@ -100,17 +121,22 @@ class ChatProvider extends ChangeNotifier {
 
     // DynatraceRootAction webAction = Dynatrace().enterAction('Generate initial suggestions');
 
+    isSuggestionsLoading = true;
+    notifyListeners();
+    
     try {
       final response = await _api.postStarters(StarterRequest(
         systemPrompt: systemPrompt,
         provider: llmProvider,
       ));
       suggestions = response.suggestions;
-      notifyListeners();
     } catch (e) {
       // Starter suggestions are best-effort.
     }
     finally {
+        isSuggestionsLoading = false;
+        notifyListeners();
+        
         // Dynatrace RUM (Classic) - not necessary for RUM on Grail
         // https://pub.dev/packages/dynatrace_flutter_plugin#create-custom-actions
         

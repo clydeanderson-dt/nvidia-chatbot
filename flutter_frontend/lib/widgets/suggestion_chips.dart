@@ -3,16 +3,48 @@ import 'package:flutter/material.dart';
 
 class SuggestionChips extends StatelessWidget {
   final List<String> suggestions;
+  final bool isLoading;
   final Future<void> Function(String) onSelect;
 
   const SuggestionChips({
     super.key,
     required this.suggestions,
+    this.isLoading = false,
     required this.onSelect,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Show loading animation when loading
+    if (isLoading) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Generating suggestions...',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
     return Padding(

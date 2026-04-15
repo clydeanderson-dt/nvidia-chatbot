@@ -8,6 +8,9 @@ import 'screens/config_screen.dart';
 
 import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 
+/// Global route observer for tracking navigation events
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() => Dynatrace().start(MainApp());
 
 class MainApp extends StatelessWidget {
@@ -38,6 +41,7 @@ class MainApp extends StatelessWidget {
         ),
         navigatorObservers: [
           DynatraceNavigationObserver(), // https://pub.dev/packages/dynatrace_flutter_plugin#navigation-observer
+          routeObserver, // Track route navigation for clearing conversation
         ],
         initialRoute: '/',
         routes: {

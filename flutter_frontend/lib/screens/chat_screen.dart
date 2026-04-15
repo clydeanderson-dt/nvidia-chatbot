@@ -2,6 +2,7 @@ import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../main.dart';
 import '../providers/chat_provider.dart';
 import '../providers/config_provider.dart';
 import '../widgets/chaos_banner.dart';
@@ -16,14 +17,39 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
-    // Refresh chaos config when screen loads
+    // Reset conversation and load starters when screen first loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ConfigProvider>().refreshChaosConfig();
+      context.read<ChatProvider>().resetAndFetchStarters();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when returning to this screen from another route
+    // Reset conversation and load new starters
+    context.read<ConfigProvider>().refreshChaosConfig();
+    context.read<ChatProvider>().resetAndFetchStarters();
   }
 
   @override
@@ -95,6 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           SuggestionChips(
             suggestions: chat.suggestions,
+            isLoading: chat.isSuggestionsLoading,
             onSelect: chat.sendMessage,
           ),
           InputBar(
