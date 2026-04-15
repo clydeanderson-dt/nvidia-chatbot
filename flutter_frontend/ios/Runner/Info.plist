@@ -24,20 +24,6 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>DTXApplicationID</key>
-	<string>40a4f0a1-14a1-4555-b434-fa95b0935988</string>
-	<key>DTXBeaconURL</key>
-	<string>https://bf40364blh.bf-sprint.dynatracelabs.com/mbeacon</string>
-	<key>DTXFlavor</key>
-	<string>flutter</string>
-	<key>DTXLogLevel</key>
-	<string>ALL</string>
-	<key>DTXStartupLoadBalancing</key>
-	<true/>
-	<key>DTXStartupWithGrailEnabled</key>
-	<true/>
-	<key>DTXUserOptIn</key>
-	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
