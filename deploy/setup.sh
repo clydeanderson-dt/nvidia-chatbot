@@ -44,7 +44,15 @@ done
 # Dynatrace OTLP Endpoint (optional, but shared between backend and load_gen)
 echo ""
 echo "Dynatrace telemetry is optional but recommended for observability."
-read -p "Enter Dynatrace OTLP endpoint (e.g., https://abc123.live.dynatrace.com) or press Enter to skip: " dt_endpoint
+read -p "Enter Dynatrace domain (e.g., https://abc123.live.dynatrace.com) or press Enter to skip: " dt_domain
+
+# Construct full OTLP endpoint if domain was provided
+dt_endpoint=""
+if [[ -n "$dt_domain" ]]; then
+    # Strip trailing slash if present
+    dt_domain=${dt_domain%/}
+    dt_endpoint="${dt_domain}/api/v2/otlp"
+fi
 
 # Dynatrace API Token (optional, only prompt if endpoint was provided)
 dt_token=""
