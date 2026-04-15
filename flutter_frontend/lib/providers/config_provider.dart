@@ -2,10 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_config.dart';
 import '../models/chaos_config.dart';
 import '../services/api_service.dart';
+
+const _kSystemPromptKey = 'chatbot_system_prompt';
+const _kProviderKey = 'chatbot_provider';
+const _kDefaultSystemPrompt = 'You are a helpful, knowledgeable, and friendly AI assistant.';
+const _kDefaultProvider = 'nim_api';
 
 /// Provider for app and chaos configuration state.
 /// 
@@ -53,19 +59,19 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Load both app and chaos config from backend.
+  /// Load app config from SharedPreferences and chaos config from backend.
   Future<void> loadConfig() async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final results = await Future.wait([
-        _api.getAppConfig(),
-        _api.getChaosConfig(),
-      ]);
-      _appConfig = results[0] as AppConfig;
-      _chaosConfig = results[1] as ChaosConfig;
+      final prefs = await SharedPreferences.getInstance();
+      final systemPrompt = prefs.getString(_kSystemPromptKey) ?? _kDefaultSystemPrompt;
+      final provider = prefs.getString(_kProviderKey) ?? _kDefaultProvider;
+      _appConfig = AppConfig(systemPrompt: systemPrompt, provider: provider);
+
+      _chaosConfig = await _api.getChaosConfig();
     } catch (e) {
       debugPrint('Failed to load config: $e');
       _error = 'Failed to load configuration';
@@ -92,20 +98,26 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── App Config Methods ─────────────────────────────────────────────────────
 
-  /// Update app configuration (system prompt and/or provider).
+  /// Update app configuration (system prompt and/or provider) in local storage.
   Future<void> updateAppConfig({String? systemPrompt, String? provider}) async {
-    final updates = <String, dynamic>{};
-    if (systemPrompt != null) updates['system_prompt'] = systemPrompt;
-    if (provider != null) updates['provider'] = provider;
-    
-    if (updates.isEmpty) return;
+    if (systemPrompt == null && provider == null) return;
 
     try {
-      _appConfig = await _api.patchAppConfig(updates);
+      final prefs = await SharedPreferences.getInstance();
+      if (systemPrompt != null) {
+        await prefs.setString(_kSystemPromptKey, systemPrompt);
+      }
+      if (provider != null) {
+        await prefs.setString(_kProviderKey, provider);
+      }
+      _appConfig = _appConfig.copyWith(
+        systemPrompt: systemPrompt,
+        provider: provider,
+      );
       _error = null;
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to update app config: $e');
+      debugPrint('Failed to save app config: $e');
       _error = 'Failed to save settings';
       notifyListeners();
       rethrow;

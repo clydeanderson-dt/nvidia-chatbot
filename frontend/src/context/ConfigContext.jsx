@@ -3,10 +3,10 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 const ConfigContext = createContext(null);
 
 export function ConfigProvider({ children }) {
-  const [appConfig, setAppConfig] = useState({
-    system_prompt: 'You are a helpful, knowledgeable, and friendly AI assistant.',
-    provider: 'nim_api',
-  });
+  const [appConfig, setAppConfig] = useState(() => ({
+    system_prompt: localStorage.getItem('chatbot_system_prompt') ?? 'You are a helpful, knowledgeable, and friendly AI assistant.',
+    provider: localStorage.getItem('chatbot_provider') ?? 'nim_api',
+  }));
 
   const [chaosConfig, setChaosConfig] = useState({
     // LLM failures
@@ -37,12 +37,10 @@ export function ConfigProvider({ children }) {
   useEffect(() => {
     async function fetchConfigs() {
       try {
-        const [appRes, chaosRes, presetsRes] = await Promise.all([
-          fetch('/api/config'),
+        const [chaosRes, presetsRes] = await Promise.all([
           fetch('/api/chaos'),
           fetch('/api/chaos/presets'),
         ]);
-        if (appRes.ok) setAppConfig(await appRes.json());
         if (chaosRes.ok) setChaosConfig(await chaosRes.json());
         if (presetsRes.ok) {
           const data = await presetsRes.json();
@@ -76,22 +74,13 @@ export function ConfigProvider({ children }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  const updateAppConfig = useCallback(async (updates) => {
-    try {
-      const res = await fetch('/api/config', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAppConfig(data);
-        return data;
-      }
-    } catch (err) {
-      console.error('Failed to update app config:', err);
-    }
-    return null;
+  const updateAppConfig = useCallback((updates) => {
+    setAppConfig((prev) => {
+      const next = { ...prev, ...updates };
+      if ('system_prompt' in updates) localStorage.setItem('chatbot_system_prompt', next.system_prompt);
+      if ('provider' in updates) localStorage.setItem('chatbot_provider', next.provider);
+      return next;
+    });
   }, []);
 
   const updateChaosConfig = useCallback(async (updates) => {

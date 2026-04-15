@@ -38,15 +38,18 @@ export function useChat() {
       const response = await fetch('/api/chat/starters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      setSuggestions(data.suggestions ?? []);
-    } catch {
-      // Starter suggestions are best-effort — never break the UI.
-    }
-  }, []);
+body: JSON.stringify({
+        system_prompt: appConfig.system_prompt,
+        provider: appConfig.provider,
+      }),
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    setSuggestions(data.suggestions ?? []);
+  } catch {
+    // Starter suggestions are best-effort — never break the UI.
+  }
+}, [appConfig.system_prompt, appConfig.provider]);
 
   // Fetch starter suggestions on mount and when app config changes,
   // but only while no conversation is in progress.
@@ -79,6 +82,8 @@ export function useChat() {
           body: JSON.stringify({
             session_id: sessionId,
             message: text.trim(),
+            system_prompt: appConfig.system_prompt,
+            provider: appConfig.provider,
           }),
         });
 
@@ -121,7 +126,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [isStreaming, sessionId, refreshChaosConfig],
+    [isStreaming, sessionId, refreshChaosConfig, appConfig.system_prompt, appConfig.provider],
   );
 
   const clearHistory = useCallback(async () => {
