@@ -70,7 +70,13 @@ cp dynatrace.config.yaml.example dynatrace.config.yaml
 Edit `dynatrace.config.yaml` and replace:
 
 - `YOUR_DYNATRACE_APPLICATION_ID` — your Dynatrace RUM application ID
-- `YOUR_ENVIRONMENT_ID` — your Dynatrace environment ID
+- `YOUR_DYNATRACE_BEACON_URL` — your Dynatrace beacon URL
+
+Run the following to apply the Dynatrace configs:
+
+```bash
+dart run dynatrace_flutter_plugin
+```
 
 If you do not have Dynatrace credentials, the app will still build and run; the plugin simply will not report telemetry.
 

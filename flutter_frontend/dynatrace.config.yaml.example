@@ -5,7 +5,7 @@ android:
         defaultConfig {
           autoStart{
             applicationId 'YOUR_DYNATRACE_APPLICATION_ID'
-            beaconUrl 'beaconUrl'
+            beaconUrl 'YOUR_DYNATRACE_BEACON_URL'
           }
           agentBehavior.startupLoadBalancing true
           agentBehavior.startupWithGrailEnabled true
@@ -18,7 +18,7 @@ ios:
     "<key>DTXApplicationID</key>
     <string>YOUR_DYNATRACE_APPLICATION_ID</string>
     <key>DTXBeaconURL</key>
-    <string><beaconUrl></string>
+    <string>YOUR_DYNATRACE_BEACON_URL</string>
     <key>DTXStartupLoadBalancing</key>
     <true/>
     <key>DTXStartupWithGrailEnabled</key>
