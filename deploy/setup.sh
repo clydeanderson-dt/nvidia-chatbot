@@ -132,6 +132,20 @@ EOF
 sudo systemctl restart systemd-journald
 log "journald configured: ForwardToSyslog=no, SystemMaxUse=500M, MaxRetentionSec=7day"
 
+# Drop chatbot and load_gen messages from /var/log/syslog via rsyslog.
+# The OTel log pipeline (BatchLogRecordProcessor → Dynatrace) is independent
+# of syslog and continues to work. Logs remain accessible in the journal
+# (journalctl -u chatbot / -u load_gen) subject to the caps above.
+RSYSLOG_DROP=/etc/rsyslog.d/10-chatbot-drop.conf
+sudo tee "$RSYSLOG_DROP" >/dev/null <<'EOF'
+# Drop chatbot and load_gen log lines from syslog to prevent disk fill.
+# OTel export to Dynatrace is unaffected (separate HTTP pipeline).
+# Use: journalctl -u chatbot -f  or  journalctl -u load_gen -f  to read logs.
+if $programname == 'chatbot' or $programname == 'load_gen' then stop
+EOF
+sudo systemctl restart rsyslog
+log "rsyslog configured: chatbot and load_gen messages will not be written to /var/log/syslog"
+
 # ---------------------------------------------------------------------------
 # 2. Directory structure
 # ---------------------------------------------------------------------------
