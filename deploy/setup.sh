@@ -41,24 +41,12 @@ while true; do
     echo "NVIDIA_API_KEY is required."
 done
 
-# Dynatrace OTLP Endpoint (optional, but shared between backend and load_gen)
+# OTel collector endpoint (optional, shared between backend and load_gen)
 echo ""
-echo "Dynatrace telemetry is optional but recommended for observability."
-read -p "Enter Dynatrace domain (e.g., https://abc123.live.dynatrace.com) or press Enter to skip: " dt_domain
-
-# Construct full OTLP endpoint if domain was provided
-dt_endpoint=""
-if [[ -n "$dt_domain" ]]; then
-    # Strip trailing slash if present
-    dt_domain=${dt_domain%/}
-    dt_endpoint="${dt_domain}/api/v2/otlp"
-fi
-
-# Dynatrace API Token (optional, only prompt if endpoint was provided)
-dt_token=""
-if [[ -n "$dt_endpoint" ]]; then
-    read -p "Enter Dynatrace API token (needs openTelemetryTrace.ingest, metrics.ingest, logs.ingest): " dt_token
-fi
+echo "OpenTelemetry export is optional but recommended for observability."
+read -p "Enter your OTel collector HTTP endpoint (e.g., http://localhost:4318) or press Enter to skip: " otlp_endpoint
+# Strip trailing slash
+otlp_endpoint=${otlp_endpoint%/}
 
 # Dynatrace RUM (optional, for frontend browser telemetry)
 echo ""
@@ -121,6 +109,30 @@ fi
 log "Node $(node --version), npm $(npm --version)"
 
 # ---------------------------------------------------------------------------
+# 1.5. journald — cap disk usage and stop forwarding to syslog
+# ---------------------------------------------------------------------------
+log "Configuring systemd-journald to prevent disk fill..."
+JOURNALD_CONF=/etc/systemd/journald.conf
+
+# Only add settings if they are not already present
+sudo sed -i '/^ForwardToSyslog=/d' "$JOURNALD_CONF"
+sudo sed -i '/^SystemMaxUse=/d'    "$JOURNALD_CONF"
+sudo sed -i '/^SystemMaxFileSize=/d' "$JOURNALD_CONF"
+sudo sed -i '/^MaxRetentionSec=/d' "$JOURNALD_CONF"
+
+sudo tee -a "$JOURNALD_CONF" >/dev/null <<'EOF'
+
+# Added by chatbot setup.sh — prevent journal from flooding syslog and filling disk.
+ForwardToSyslog=no
+SystemMaxUse=500M
+SystemMaxFileSize=50M
+MaxRetentionSec=7day
+EOF
+
+sudo systemctl restart systemd-journald
+log "journald configured: ForwardToSyslog=no, SystemMaxUse=500M, MaxRetentionSec=7day"
+
+# ---------------------------------------------------------------------------
 # 2. Directory structure
 # ---------------------------------------------------------------------------
 log "Creating directory structure..."
@@ -147,8 +159,7 @@ log "Installing backend dependencies..."
 log "Creating backend .env with provided configuration..."
 sudo tee "$INSTALL_DIR/backend/.env" >/dev/null <<EOF
 NVIDIA_API_KEY=$nvidia_key
-DYNATRACE_OTLP_ENDPOINT=$dt_endpoint
-DYNATRACE_API_TOKEN=$dt_token
+OTLP_ENDPOINT=$otlp_endpoint
 ALLOWED_ORIGINS=$allowed_origins
 SELF_HOSTED_NIM_URL=$nim_url
 EOF
@@ -215,11 +226,10 @@ log "chatbot service started."
 log "Installing load_gen dependencies..."
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/load_gen/requirements.txt" >/dev/null
 
-# Create load_gen .env with values from user input (reusing Dynatrace vars)
+# Create load_gen .env with values from user input (reusing OTel vars)
 log "Creating load_gen .env with provided configuration..."
 sudo tee "$INSTALL_DIR/load_gen/.env" >/dev/null <<EOF
-DYNATRACE_OTLP_ENDPOINT=$dt_endpoint
-DYNATRACE_API_TOKEN=$dt_token
+OTLP_ENDPOINT=$otlp_endpoint
 LOAD_GEN_CONCURRENCY=$load_concurrency
 LOAD_GEN_PROVIDER=$load_provider
 EOF

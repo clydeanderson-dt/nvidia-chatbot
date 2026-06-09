@@ -42,12 +42,11 @@ from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 # ---------------------------------------------------------------------------
 def setup_telemetry() -> trace.Tracer:
     """Initialise OTel tracing. Returns a no-op tracer if env vars are absent."""
-    endpoint = os.environ.get("DYNATRACE_OTLP_ENDPOINT", "").rstrip("/")
-    api_token = os.environ.get("DYNATRACE_API_TOKEN", "")
+    endpoint = os.environ.get("OTLP_ENDPOINT", "").rstrip("/")
 
-    if not endpoint or not api_token:
+    if not endpoint:
         print(
-            "Warning: DYNATRACE_OTLP_ENDPOINT or DYNATRACE_API_TOKEN not set — "
+            "Warning: OTLP_ENDPOINT not set — "
             "telemetry export is disabled.",
             flush=True,
         )
@@ -57,7 +56,6 @@ def setup_telemetry() -> trace.Tracer:
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter(
         endpoint=f"{endpoint}/v1/traces",
-        headers={"Authorization": f"Api-Token {api_token}"},
     )
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)

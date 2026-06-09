@@ -12,18 +12,16 @@ from traceloop.sdk import Traceloop  # noqa: E402
 
 _APP_NAME = "nvidia-chatbot"
 
-_traceloop_endpoint = os.getenv("DYNATRACE_OTLP_ENDPOINT")
-_traceloop_token = os.getenv("DYNATRACE_API_TOKEN")
+_otlp_endpoint = os.getenv("OTLP_ENDPOINT")
 
-if _traceloop_endpoint and _traceloop_token:
+if _otlp_endpoint:
     Traceloop.init(
         app_name=_APP_NAME,
-        api_endpoint=_traceloop_endpoint,
-        headers={"Authorization": f"Api-Token {_traceloop_token}"},
+        api_endpoint=_otlp_endpoint,
     )
 else:
     logging.warning(
-        "DYNATRACE_OTLP_ENDPOINT or DYNATRACE_API_TOKEN is not set — "
+        "OTLP_ENDPOINT is not set — "
         "Traceloop/OTel tracing will not be initialised."
     )
 
@@ -70,23 +68,18 @@ class _FixGenAiSystemProcessor(_SpanProcessor):
 if hasattr(_tracer_provider, "add_span_processor"):
     _tracer_provider.add_span_processor(_FixGenAiSystemProcessor())
 
-_dt_endpoint = os.getenv("DYNATRACE_OTLP_ENDPOINT")
-_dt_token = os.getenv("DYNATRACE_API_TOKEN")
-
-if _dt_endpoint and _dt_token:
+if _otlp_endpoint:
     from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter  # noqa: E402
 
     _log_exporter = OTLPLogExporter(
-        endpoint=f"{_dt_endpoint}/v1/logs",
-        headers={"Authorization": f"Api-Token {_dt_token}"},
+        endpoint=f"{_otlp_endpoint}/v1/logs",
     )
     _logger_provider = LoggerProvider(resource=_otel_resource) if _otel_resource else LoggerProvider()
     _logger_provider.add_log_record_processor(BatchLogRecordProcessor(_log_exporter))
     set_logger_provider(_logger_provider)
 else:
     logging.warning(
-        "DYNATRACE_OTLP_ENDPOINT or DYNATRACE_API_TOKEN is not set — "
-        "logs will not be exported to Dynatrace."
+        "OTLP_ENDPOINT is not set — logs will not be exported."
     )
 
 # Bridge Python logging → OTel and inject otelTraceID / otelSpanID into every record.
