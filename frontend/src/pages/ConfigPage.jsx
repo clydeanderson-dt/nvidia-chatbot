@@ -82,6 +82,7 @@ export function ConfigPage() {
   const {
     appConfig,
     chaosConfig,
+    chaosPreset,
     chaosPresets,
     loading,
     isAnyChaosActive,
@@ -113,7 +114,7 @@ export function ConfigPage() {
   const isAppConfigDirty =
     systemPrompt !== appConfig.system_prompt || provider !== appConfig.provider;
 
-  const activePreset = getActivePreset(chaosConfig);
+  const activePreset = chaosPreset && chaosPreset !== 'unknown' ? chaosPreset : getActivePreset(chaosConfig);
 
   if (loading) {
     return (
@@ -132,7 +133,7 @@ export function ConfigPage() {
 
       {isAnyChaosActive && (
         <div className={styles.chaosBanner}>
-          ⚠️ Chaos mode is active — failures may be injected into requests.
+          ⚠️ Chaos mode is active{activePreset && activePreset !== 'unknown' ? ` — preset: ${activePreset}` : ''} — failures may be injected into requests.
         </div>
       )}
 

@@ -11,6 +11,7 @@ FastAPI application that manages AI chat sessions via LangChain and the NVIDIA N
 | `main.py` | FastAPI app setup: CORS middleware, Traceloop/OTel initialisation, router registration, lifespan hooks |
 | `routers/chat.py` | Route handlers for all `/api/*` endpoints |
 | `services/llm.py` | LangChain chain construction, in-memory session store, LLM inference, suggestion and starter generation |
+| `services/feature_flags.py` | OpenFeature initialization with the DevCycle provider |
 | `models/schemas.py` | Pydantic request/response models |
 | `requirements.txt` | Python dependencies |
 
@@ -23,6 +24,7 @@ Create `backend/.env` (copy from `.env.example`):
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NVIDIA_API_KEY` | Yes | — | NVIDIA NIM API key (`nvapi-…`). Required for the `nim_api` provider. |
+| `DEVCYCLE_SERVER_SDK_KEY` | No | — | DevCycle server SDK key (`dvc_server_...`). Enables OpenFeature provider initialization at app startup. |
 | `SELF_HOSTED_NIM_URL` | No | — | Base URL of a self-hosted NIM server (e.g. `http://localhost:8080`). Enables the `self_hosted` provider. |
 | `DYNATRACE_OTLP_ENDPOINT` | No | — | `https://{environmentId}.live.dynatrace.com` — traces and logs are skipped with a warning if absent. |
 | `DYNATRACE_API_TOKEN` | No | — | Dynatrace API token. Requires scopes: `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest`. |
@@ -145,7 +147,18 @@ Partially update the app configuration.
 
 ## Chaos Engineering API
 
-The chaos API allows injecting faults and failures for testing observability, resilience, and demos.
+The chaos API exposes the current fault-injection state. Configuration is
+managed externally via **DevCycle feature flags** (see `services/feature_flags.py`)
+and is **read-only** from this service. To change chaos state, update the
+`chaos-preset` feature in the DevCycle dashboard.
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/chaos` | Current chaos configuration (resolved from DevCycle) |
+| `GET` | `/api/chaos/status` | `{active, config, controlled_by: "devcycle"}` |
+| `GET` | `/api/chaos/presets` | Available DevCycle variation keys |
 
 ### Chaos Configuration Fields
 
@@ -153,8 +166,7 @@ The chaos API allows injecting faults and failures for testing observability, re
 |---|---|---|---|
 | **LLM Failures** | `llm_delay_ms` | int | Delay before LLM response (ms) |
 | | `llm_error_rate` | float | Probability of LLM call failure (0.0–1.0) |
-| | `rate_limit_enabled` | bool | Enable rate limiting simulation |
-| | `rate_limit_after_n` | int | Return 429 after N requests |
+| | `rate_limit_enabled` | bool | Enable rate limiting simulation (429 after 3 requests) |
 | | `malformed_response_rate` | float | Probability of malformed JSON in suggestions |
 | | `empty_response_rate` | float | Probability of empty LLM response |
 | | `hallucination_enabled` | bool | Inject hallucination marker text |
@@ -168,35 +180,15 @@ The chaos API allows injecting faults and failures for testing observability, re
 | | `http_503_rate` | float | Probability of HTTP 503 errors |
 | | `session_error_rate` | float | Probability of session errors |
 
-### Chaos Presets
+### Chaos Presets (DevCycle variations)
 
 | Preset | Effect |
 |---|---|
 | `healthy` | All chaos disabled |
-| `slow_llm` | 5 second LLM delay |
-| `flaky_network` | 30% HTTP 500 errors + random delays (500–2000ms) |
-| `rate_limited` | 429 after 3 requests |
+| `slow-llm` | 5 second LLM delay |
+| `flaky-network` | 30% HTTP 500 errors + random delays (500–2000ms) |
+| `rate-limited` | 429 after 3 requests |
 | `degraded` | 20% LLM errors, 10% empty responses, 1s fixed delay |
-
-### Example: Apply a Preset
-
-```bash
-curl -X POST http://localhost:8000/api/chaos/preset/slow_llm
-```
-
-### Example: Custom Chaos Configuration
-
-```bash
-curl -X PATCH http://localhost:8000/api/chaos \
-  -H "Content-Type: application/json" \
-  -d '{"llm_delay_ms": 2000, "http_500_rate": 0.2}'
-```
-
-### Example: Reset Chaos
-
-```bash
-curl -X POST http://localhost:8000/api/chaos/reset
-```
 
 ---
 

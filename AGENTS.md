@@ -4,6 +4,10 @@ This file documents the application for AI agents so they can quickly understand
 
 ---
 
+## Active Migrations
+
+- **Chaos engineering → DevCycle feature flags** (in progress on branch `agents-refactor-chaos-engineering-feature-flags`). See [`docs/chaos-devcycle-migration.md`](docs/chaos-devcycle-migration.md) for the locked-in plan, DevCycle state, and per-file execution checklist. Resume with: "Read `docs/chaos-devcycle-migration.md` and start Phase 2."
+
 ## Overview
 
 A full-stack AI chatbot that uses the **NVIDIA NIM API** (via LangChain) to serve responses from `meta/llama-3.1-8b-instruct`. It includes **OpenTelemetry** telemetry exported to **Dynatrace**. Two frontend clients are provided: a React web app and a Flutter mobile/desktop app.

@@ -31,17 +31,22 @@ export function ConfigProvider({ children }) {
   });
 
   const [chaosPresets, setChaosPresets] = useState([]);
+  const [chaosPreset, setChaosPreset] = useState('unknown');
   const [loading, setLoading] = useState(true);
 
   // Fetch configs on mount
   useEffect(() => {
     async function fetchConfigs() {
       try {
-        const [chaosRes, presetsRes] = await Promise.all([
-          fetch('/api/chaos'),
+        const [statusRes, presetsRes] = await Promise.all([
+          fetch('/api/chaos/status'),
           fetch('/api/chaos/presets'),
         ]);
-        if (chaosRes.ok) setChaosConfig(await chaosRes.json());
+        if (statusRes.ok) {
+          const data = await statusRes.json();
+          setChaosConfig(data.config);
+          setChaosPreset(data.preset ?? 'unknown');
+        }
         if (presetsRes.ok) {
           const data = await presetsRes.json();
           setChaosPresets(data.presets || []);
@@ -60,9 +65,11 @@ export function ConfigProvider({ children }) {
     async function handleVisibilityChange() {
       if (!document.hidden) {
         try {
-          const res = await fetch('/api/chaos');
+          const res = await fetch('/api/chaos/status');
           if (res.ok) {
-            setChaosConfig(await res.json());
+            const data = await res.json();
+            setChaosConfig(data.config);
+            setChaosPreset(data.preset ?? 'unknown');
           }
         } catch (err) {
           // Silent fail
@@ -131,9 +138,11 @@ export function ConfigProvider({ children }) {
 
   const refreshChaosConfig = useCallback(async () => {
     try {
-      const res = await fetch('/api/chaos');
+      const res = await fetch('/api/chaos/status');
       if (res.ok) {
-        setChaosConfig(await res.json());
+        const data = await res.json();
+        setChaosConfig(data.config);
+        setChaosPreset(data.preset ?? 'unknown');
       }
     } catch (err) {
       // Silent fail
@@ -160,6 +169,7 @@ export function ConfigProvider({ children }) {
       value={{
         appConfig,
         chaosConfig,
+        chaosPreset,
         chaosPresets,
         loading,
         isAnyChaosActive,
