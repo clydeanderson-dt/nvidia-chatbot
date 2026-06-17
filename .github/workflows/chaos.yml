@@ -29,7 +29,7 @@ jobs:
         if: steps.decision.outputs.start == 'true'
         id: preset
         run: |
-          PRESETS=("slow_llm" "flaky_network" "rate_limited" "degraded")
+          PRESETS=("slow-llm" "flaky-network" "rate-limited" "degraded")
           SELECTED=${PRESETS[$RANDOM % ${#PRESETS[@]}]}
           echo "preset=$SELECTED" >> $GITHUB_OUTPUT
           echo "🔥 Selected preset: $SELECTED"
@@ -41,19 +41,43 @@ jobs:
           MIN_SECONDS=$((15 * 60))   # 15 minutes
           MAX_SECONDS=$((90 * 60))   # 90 minutes
           RANGE=$((MAX_SECONDS - MIN_SECONDS))
-          DURATION=$((MIN_SECONDS + RANDOM % RANGE))
+          DURATION=60
           MINUTES=$((DURATION / 60))
           echo "duration=$DURATION" >> $GITHUB_OUTPUT
           echo "⏱️  Chaos will run for $MINUTES minutes"
       
-      - name: Apply chaos preset
+      - name: Get DevCycle access token
         if: steps.decision.outputs.start == 'true'
+        id: dvc_auth
         run: |
-          echo "Applying preset: ${{ steps.preset.outputs.preset }}"
-          curl -X POST -f \
-            "${{ secrets.BACKEND_URL }}/api/chaos/preset/${{ steps.preset.outputs.preset }}" \
-            -H "Content-Type: application/json"
-      
+          TOKEN=$(curl -s -X POST https://auth.devcycle.com/oauth/token \
+            -H 'content-type: application/x-www-form-urlencoded' \
+            -d grant_type=client_credentials \
+            -d audience=https://api.devcycle.com/ \
+            -d client_id=${{ secrets.DEVCYCLE_CLIENT_ID }} \
+            -d client_secret=${{ secrets.DEVCYCLE_CLIENT_SECRET }} \
+            | jq -r .access_token)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
+            echo "❌ Failed to obtain DevCycle access token"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ Obtained DevCycle access token"
+
+      - name: Apply chaos preset via DevCycle
+        if: steps.decision.outputs.start == 'true'
+        env:
+          DEVCYCLE_PROJECT_KEY: ${{ secrets.DEVCYCLE_PROJECT_KEY }}
+        run: |
+          PRESET="${{ steps.preset.outputs.preset }}"
+          echo "Applying preset: $PRESET"
+          curl -X PATCH -f \
+            "https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production" \
+            -H "Authorization: Bearer ${{ steps.dvc_auth.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"targets\":[{\"name\":\"All Users - $PRESET\",\"distribution\":[{\"_variation\":\"$PRESET\",\"percentage\":1}],\"audience\":{\"name\":\"All Users\",\"filters\":{\"filters\":[{\"type\":\"all\"}],\"operator\":\"and\"}}}]}"
+
       - name: Send Dynatrace chaos enabled event
         if: steps.decision.outputs.start == 'true'
         run: |
@@ -63,13 +87,13 @@ jobs:
           
           # Preset descriptions
           case "$PRESET" in
-            slow_llm)
+            slow-llm)
               DESCRIPTION="LLM responses delayed by 5000ms"
               ;;
-            flaky_network)
+            flaky-network)
               DESCRIPTION="HTTP 500 errors (30% rate) + random delays (500-2000ms)"
               ;;
-            rate_limited)
+            rate-limited)
               DESCRIPTION="Rate limiting enabled after 3 requests"
               ;;
             degraded)
@@ -106,11 +130,24 @@ jobs:
       
       - name: Reset to healthy
         if: always() && steps.decision.outputs.start == 'true'
+        env:
+          DEVCYCLE_PROJECT_KEY: ${{ secrets.DEVCYCLE_PROJECT_KEY }}
         run: |
           echo "Resetting to healthy state"
-          curl -X POST -f \
-            "${{ secrets.BACKEND_URL }}/api/chaos/preset/healthy" \
-            -H "Content-Type: application/json"
+          # Re-fetch token in case the original step was skipped or token expired
+          TOKEN=$(curl -s -X POST https://auth.devcycle.com/oauth/token \
+            -H 'content-type: application/x-www-form-urlencoded' \
+            -d grant_type=client_credentials \
+            -d audience=https://api.devcycle.com/ \
+            -d client_id=${{ secrets.DEVCYCLE_CLIENT_ID }} \
+            -d client_secret=${{ secrets.DEVCYCLE_CLIENT_SECRET }} \
+            | jq -r .access_token)
+          echo "::add-mask::$TOKEN"
+          curl -X PATCH -f \
+            "https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"targets":[{"name":"All Users - Healthy","distribution":[{"_variation":"healthy","percentage":1}],"audience":{"name":"All Users","filters":{"filters":[{"type":"all"}],"operator":"and"}}}]}'
       
       - name: Send Dynatrace chaos disabled event
         if: always() && steps.decision.outputs.start == 'true'
@@ -137,8 +174,19 @@ jobs:
       
       - name: Verify healthy state
         if: always() && steps.decision.outputs.start == 'true'
+        env:
+          DEVCYCLE_PROJECT_KEY: ${{ secrets.DEVCYCLE_PROJECT_KEY }}
         run: |
-          echo "Verifying chaos is disabled..."
-          curl -X GET \
-            "${{ secrets.BACKEND_URL }}/api/chaos/status" \
-            -H "Content-Type: application/json"
+          echo "Verifying chaos is disabled via DevCycle Management API..."
+          TOKEN=$(curl -s -X POST https://auth.devcycle.com/oauth/token \
+            -H 'content-type: application/x-www-form-urlencoded' \
+            -d grant_type=client_credentials \
+            -d audience=https://api.devcycle.com/ \
+            -d client_id=${{ secrets.DEVCYCLE_CLIENT_ID }} \
+            -d client_secret=${{ secrets.DEVCYCLE_CLIENT_SECRET }} \
+            | jq -r .access_token)
+          echo "::add-mask::$TOKEN"
+          curl -s \
+            "https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq '.[0].targets[0].distribution'

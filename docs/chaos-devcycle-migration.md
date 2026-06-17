@@ -75,8 +75,10 @@ The DevCycle client is wired in but nothing reads from it yet. That's the work.
 
 ### Manual setup (user)
 - [x] Get the production **server SDK key** from DevCycle dashboard → add as `DEVCYCLE_SERVER_SDK_KEY` env var on deployed backend (and locally in `backend/.env`).
-- [ ] Generate a **Management API token** in DevCycle → add to GitHub repo secrets as `DEVCYCLE_API_TOKEN`.
-- [ ] Add GitHub repo secret `DEVCYCLE_PROJECT_KEY=nvidia-chatbot`.
+- [ ] In DevCycle dashboard → Settings, create a **service account / API client** to obtain Management API OAuth2 credentials (DevCycle does not support static API tokens — auth is OAuth2 client credentials exchanged for a short-lived bearer token). Add to GitHub repo secrets:
+  - `DEVCYCLE_CLIENT_ID`
+  - `DEVCYCLE_CLIENT_SECRET`
+  - `DEVCYCLE_PROJECT_KEY=nvidia-chatbot`
 
 ### Phase 2 — Backend refactor ✅ DONE
 
@@ -110,32 +112,48 @@ Completed:
 
 **`.github/workflows/chaos.yml`** — replace preset apply + reset steps:
 
+DevCycle Management API auth is **OAuth2 client credentials** — exchange `client_id` + `client_secret` for a short-lived bearer token, then pass it as `Authorization: Bearer <token>`. There are no static API tokens.
+
 ```yaml
+- name: Get DevCycle access token
+  id: dvc_auth
+  if: steps.decision.outputs.start == 'true'
+  run: |
+    TOKEN=$(curl -s -X POST https://auth.devcycle.com/oauth/token \
+      -H 'content-type: application/x-www-form-urlencoded' \
+      -d grant_type=client_credentials \
+      -d audience=https://api.devcycle.com/ \
+      -d client_id=${{ secrets.DEVCYCLE_CLIENT_ID }} \
+      -d client_secret=${{ secrets.DEVCYCLE_CLIENT_SECRET }} \
+      | jq -r .access_token)
+    echo "::add-mask::$TOKEN"
+    echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
 - name: Apply chaos preset via DevCycle
   if: steps.decision.outputs.start == 'true'
   env:
-    DEVCYCLE_API_TOKEN: ${{ secrets.DEVCYCLE_API_TOKEN }}
     DEVCYCLE_PROJECT_KEY: ${{ secrets.DEVCYCLE_PROJECT_KEY }}
   run: |
     PRESET="${{ steps.preset.outputs.preset }}"
     curl -X PATCH -f \
       "https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production" \
-      -H "Authorization: $DEVCYCLE_API_TOKEN" \
+      -H "Authorization: Bearer ${{ steps.dvc_auth.outputs.token }}" \
       -H "Content-Type: application/json" \
       -d "{\"targets\":[{\"name\":\"All Users - $PRESET\",\"distribution\":[{\"_variation\":\"$PRESET\",\"percentage\":1}],\"audience\":{\"name\":\"All Users\",\"filters\":{\"filters\":[{\"type\":\"all\"}],\"operator\":\"and\"}}}]}"
 
 - name: Reset to healthy
   if: always() && steps.decision.outputs.start == 'true'
   env:
-    DEVCYCLE_API_TOKEN: ${{ secrets.DEVCYCLE_API_TOKEN }}
     DEVCYCLE_PROJECT_KEY: ${{ secrets.DEVCYCLE_PROJECT_KEY }}
   run: |
     curl -X PATCH -f \
       "https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production" \
-      -H "Authorization: $DEVCYCLE_API_TOKEN" \
+      -H "Authorization: Bearer ${{ steps.dvc_auth.outputs.token }}" \
       -H "Content-Type: application/json" \
       -d '{"targets":[{"name":"All Users - Healthy","distribution":[{"_variation":"healthy","percentage":1}],"audience":{"name":"All Users","filters":{"filters":[{"type":"all"}],"operator":"and"}}}]}'
 ```
+
+Note: the access token typically expires in ~24h; fetching one per workflow run is fine. If the `Reset to healthy` step runs in a separate job, re-fetch the token there.
 
 - [ ] Update preset names in the bash array — change underscores to dashes to match DevCycle variation keys:
   ```bash
