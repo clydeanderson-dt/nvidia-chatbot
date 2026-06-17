@@ -14,10 +14,11 @@ import asyncio
 import logging
 import random
 
+from devcycle_python_sdk.models.user import DevCycleUser
 from openfeature.evaluation_context import EvaluationContext
 
 from models.schemas import ChaosConfig
-from services.feature_flags import get_openfeature_client
+from services.feature_flags import get_devcycle_client, get_openfeature_client
 
 logger = logging.getLogger("chatbot.chaos")
 
@@ -244,6 +245,18 @@ def should_malform_suggestions() -> bool:
 
 
 def get_active_preset_name() -> str:
-    """Return the DevCycle variation key currently being served."""
-    c = get_openfeature_client()
-    return c.get_string_value("chaos-preset-name", "unknown", _CHAOS_CONTEXT)
+    """Return the DevCycle variation key currently being served.
+
+    Uses the native DevCycle SDK's `all_features()` to read the
+    `variationKey` directly. (DevCycle's OpenFeature provider does not
+    populate `EvaluationDetails.variant`.)
+    """
+    client = get_devcycle_client()
+    if client is None:
+        return "unknown"
+    user = DevCycleUser(user_id="server-chaos")
+    features = client.all_features(user)
+    feature = features.get("chaos-preset")
+    if feature is None:
+        return "unknown"
+    return feature.variationKey or "unknown"

@@ -151,148 +151,75 @@
   cursor: not-allowed;
 }
 
-.presetGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+.devcycleBanner {
+  background: #f4f0ff;
+  border: 1px solid #7c5cff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
 }
 
-.presetBtn {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 12px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.presetBtn:hover {
-  border-color: #0066cc;
-  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
-}
-
-.presetHealthy {
-  border-color: #28a745;
-  background: #f0fff4;
-}
-
-.presetHealthy:hover {
-  border-color: #28a745;
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
-}
-
-.presetActive {
-  border-color: #0066cc;
-  background: #e7f3ff;
-  border-width: 2px;
-}
-
-.presetActive:hover {
-  border-color: #0066cc;
-  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.25);
-}
-
-.presetName {
-  display: block;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-transform: capitalize;
+.devcycleTitle {
+  font-weight: 700;
+  color: #4b3bb8;
+  font-size: 0.95rem;
   margin-bottom: 4px;
 }
 
-.activeIndicator {
-  color: #0066cc;
-  font-weight: 700;
-}
-
-.presetDesc {
-  display: block;
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.resetBtn {
-  background: #dc3545;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
+.devcycleBody {
   font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.resetBtn:hover {
-  background: #c82333;
-}
-
-.slider {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #ddd;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #0066cc;
-  cursor: pointer;
-}
-
-.slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #0066cc;
-  cursor: pointer;
-  border: none;
-}
-
-.checkboxField {
+  color: #555;
   margin-bottom: 12px;
 }
 
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
+.devcycleBody a {
+  color: #4b3bb8;
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.checkboxLabel input {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
+.devcycleBody a:hover {
+  text-decoration: underline;
 }
 
-.rangeGroup {
+.devcycleVariationRow {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.numberInput {
-  width: 100px;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  outline: none;
+.variationBadge {
+  background: #4b3bb8;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: capitalize;
 }
 
-.numberInput:focus {
-  border-color: #0066cc;
+.readonlyRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.readonlyRow:last-child {
+  border-bottom: none;
+}
+
+.readonlyLabel {
+  color: #444;
+  font-weight: 500;
+}
+
+.readonlyValue {
+  color: #111;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
 }
 
 .configJson {

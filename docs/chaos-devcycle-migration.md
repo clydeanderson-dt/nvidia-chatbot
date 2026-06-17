@@ -1,7 +1,7 @@
 # Chaos Engineering → DevCycle Feature Flags Migration
 
 **Branch**: `agents-refactor-chaos-engineering-feature-flags`
-**Status**: Phase 2 (backend) complete ✅ — Phase 3+ pending
+**Status**: Phase 2 (backend) complete ✅ — Phase 3 React complete ✅ — Phase 3 Flutter + Phase 4–5 pending
 **Owner notes**: Plan locked in across 2026-06-17 session. Resume from "Execution Checklist" below.
 
 ---
@@ -24,17 +24,16 @@ Dashboard: https://app.devcycle.com/o/org_SeGjnZQOwOYgQWYZ/p/nvidia-chatbot/feat
 
 **Feature**: `chaos-preset` (type: `ops`, server-only SDK visibility, tags: `chaos`, `demo`)
 
-**Variations** (all 16 variables per variation; values below are the non-zero/non-false ones):
-- `healthy` — all chaos variables at default; `chaos-preset-name="healthy"`
-- `slow-llm` — `chaos-llm-delay-ms=5000`; `chaos-preset-name="slow-llm"`
-- `flaky-network` — `chaos-http-500-rate=0.3`, `chaos-random-delay-min-ms=500`, `chaos-random-delay-max-ms=2000`; `chaos-preset-name="flaky-network"`
-- `rate-limited` — `chaos-rate-limit-enabled=true`; `chaos-preset-name="rate-limited"`
-- `degraded` — `chaos-llm-error-rate=0.2`, `chaos-empty-response-rate=0.1`, `chaos-fixed-delay-ms=1000`; `chaos-preset-name="degraded"`
+**Variations** (15 variables per variation; values below are the non-zero/non-false ones). The currently-served variation key is read at runtime via OpenFeature `EvaluationDetails.variant` (DevCycle's OpenFeature provider populates this with the variation key) — no dedicated label variable is needed.
+- `healthy` — all chaos variables at default
+- `slow-llm` — `chaos-llm-delay-ms=5000`
+- `flaky-network` — `chaos-http-500-rate=0.3`, `chaos-random-delay-min-ms=500`, `chaos-random-delay-max-ms=2000`
+- `rate-limited` — `chaos-rate-limit-enabled=true`
+- `degraded` — `chaos-llm-error-rate=0.2`, `chaos-empty-response-rate=0.1`, `chaos-fixed-delay-ms=1000`
 
-**Variables** (16 total, all created under `chaos-preset`):
+**Variables** (15 total, all created under `chaos-preset`):
 | Key | Type |
 |---|---|
-| `chaos-preset-name` | String |
 | `chaos-llm-delay-ms` | Number |
 | `chaos-llm-error-rate` | Number |
 | `chaos-rate-limit-enabled` | Boolean |
@@ -51,7 +50,7 @@ Dashboard: https://app.devcycle.com/o/org_SeGjnZQOwOYgQWYZ/p/nvidia-chatbot/feat
 | `chaos-http-503-rate` | Number |
 | `chaos-session-error-rate` | Number |
 
-`chaos-preset-name` is a label echoed by each variation so the backend (and downstream UIs) can display which preset is currently being served without inferring it from field values.
+`chaos-preset` was 16 vars in an earlier plan with a dedicated `chaos-preset-name` String variable, but that's now removed — the backend uses OpenFeature `EvaluationDetails.variant` instead.
 
 **Targeting**:
 - `development`: active, serves `healthy` to All Users
@@ -83,7 +82,8 @@ The DevCycle client is wired in but nothing reads from it yet. That's the work.
 
 Completed:
 - `backend/models/schemas.py` — removed `rate_limit_after_n` field and the now-unused `ChaosConfigUpdate` model.
-- `backend/services/chaos.py` — added `RATE_LIMIT_THRESHOLD = 3` constant; replaced singleton `_chaos_config` with `get_config()` that reads from OpenFeature on every call; added `get_active_preset_name()` reading `chaos-preset-name`; deleted `update_config`, `reset_config`, `apply_preset`, `list_presets`, `PRESETS`; updated `check_rate_limit()` to use the threshold constant; left all helpers (`should_inject`, `get_total_delay_ms`, `inject_delay`, `is_any_chaos_active`, `check_pre_llm_chaos`, `modify_llm_response`, `should_malform_suggestions`, all `ChaosInjectedError` subclasses) unchanged.
+- `backend/services/chaos.py` — added `RATE_LIMIT_THRESHOLD = 3` constant; replaced singleton `_chaos_config` with `get_config()` that reads from OpenFeature on every call; added `get_active_preset_name()` that uses the native DevCycle SDK (`all_features(user)["chaos-preset"].variationKey`); deleted `update_config`, `reset_config`, `apply_preset`, `list_presets`, `PRESETS`; updated `check_rate_limit()` to use the threshold constant; left all helpers (`should_inject`, `get_total_delay_ms`, `inject_delay`, `is_any_chaos_active`, `check_pre_llm_chaos`, `modify_llm_response`, `should_malform_suggestions`, all `ChaosInjectedError` subclasses) unchanged.
+- `backend/services/feature_flags.py` — added `get_devcycle_client()` accessor for the native SDK client, used by `get_active_preset_name()`.
 - `backend/routers/chaos.py` — kept `GET /api/chaos`, `GET /api/chaos/status`, `GET /api/chaos/presets`; removed `PATCH /api/chaos`, `POST /api/chaos/reset`, `POST /api/chaos/preset/{name}`. `/status` now returns `{active, config, preset, controlled_by: "devcycle"}`. Presets list is hardcoded as `["healthy","slow-llm","flaky-network","rate-limited","degraded"]`.
 - `backend/routers/chat.py` & `backend/services/llm.py`: untouched.
 - `backend/.env.example`: `DEVCYCLE_SERVER_SDK_KEY` already present.
@@ -91,16 +91,11 @@ Completed:
 
 ### Phase 3 — Frontend cleanup
 
-**React (`frontend/src/`)** — partially done; remainder pending:
-- [x] `context/ConfigContext.jsx`: switched chaos polling to `GET /api/chaos/status` and now exposes `chaosPreset` (the DevCycle variation name). Write methods (`updateChaosConfig`, `resetChaosConfig`, `applyPreset`) are still present and used by the old write UI — **delete them when removing the controls**.
-- [x] `pages/ConfigPage.jsx`: top banner now displays the active preset name straight from `chaosPreset` (no inference).
-- [ ] **Remove the "Chaos Presets" section entirely.** Keep only the read-only field groups (LLM Failures, Latency Injection, HTTP Errors). Rationale: DevCycle can tune all underlying fields and the preset list may change — having presets in the app UI duplicates DevCycle and risks drift.
-- [ ] Convert each field control (sliders / switches / number inputs) to read-only display rows; remove the `onChange` handlers and the local-draft state.
-- [ ] Replace the old "active" tag with a DevCycle link banner:
-  > 🚩 **Controlled by DevCycle Feature Flags**
-  > Chaos scenarios are managed via DevCycle. [View in DevCycle dashboard →](https://app.devcycle.com/o/org_SeGjnZQOwOYgQWYZ/p/nvidia-chatbot/features/chaos-preset)
-- [ ] Delete `updateChaosConfig`, `resetChaosConfig`, `applyPreset` from `ConfigContext.jsx` and stop exporting `chaosPresets` / `applyPreset` once the UI no longer needs them.
-- [ ] `components/chaos-banner` / `ChatPage` banner: keep — still reflects active state from polled status.
+**React (`frontend/src/`)** — ✅ DONE:
+- [x] `context/ConfigContext.jsx`: polls `GET /api/chaos/status`, exposes `chaosVariation` (renamed from `chaosPreset`). All write methods (`updateChaosConfig`, `resetChaosConfig`, `applyPreset`) and the `chaosPresets` list are removed.
+- [x] `pages/ConfigPage.jsx`: top banner displays the active DevCycle variation name. "Chaos Presets" section deleted. LLM Failures / Latency Injection / HTTP Errors sections converted to read-only display rows via a `ReadOnlyRow` helper. DevCycle banner with dashboard link added.
+- [x] `pages/ConfigPage.module.css`: dead styles removed (`.presetGrid`, `.presetBtn*`, `.presetName`, `.presetDesc`, `.activeIndicator`, `.resetBtn`, `.slider`, `.checkboxField`, `.checkboxLabel`, `.rangeGroup`, `.numberInput`). New styles added for `.devcycleBanner`, `.devcycleVariationRow`, `.variationBadge`, `.readonlyRow`.
+- [x] `components/chaos-banner` / `ChatPage` banner: kept — still reflects active state from polled status.
 
 **Flutter (`flutter_frontend/lib/`)**:
 - [ ] `providers/config_provider.dart`: switch chaos polling to `/api/chaos/status`; surface `preset`; remove write methods.
@@ -164,6 +159,8 @@ Completed:
 
 2. **OpenFeature value methods — DevCycle Number variables come back as float**: Do not use `get_integer_value` for any DevCycle Number variable. The OpenFeature spec strictly type-checks the SDK's returned value against the requested Python type, and DevCycle's bucketing returns Numbers as `float`. `get_integer_value` will silently fall back to the default value with `error_code=TYPE_MISMATCH`. Use `get_float_value` and cast with `int(...)` when the field is logically an integer (e.g. `*_ms` fields). Booleans and Strings work normally with their typed accessors.
 
+2a. **OpenFeature `EvaluationDetails.variant` is not populated by the DevCycle provider** — `c.get_boolean_details(...).variant` returns `None`. To read the served variation key, use the native DevCycle SDK: `devcycle_client.all_features(user)["chaos-preset"].variationKey`. `services/feature_flags.py` exposes `get_devcycle_client()` for this purpose.
+
 3. **EvaluationContext targeting_key**: We use a constant `"server-chaos"` so chaos always applies globally. If you ever want per-session chaos, pass `session_id` as the targeting key instead.
 
 4. **DevCycle local-bucketing latency**: SDK caches config in-process; per-request evaluation is microseconds. No additional caching layer needed.
@@ -172,7 +169,7 @@ Completed:
 
 6. **New variables require a backend restart in some cases**: If you add a new variable to the feature *after* the SDK has already fetched config, the local-bucketing cache may not include the new key until its next poll (usually within ~30s, but a backend restart guarantees freshness during dev).
 
-7. **Active preset display**: Each variation sets a dedicated `chaos-preset-name` String variable to its own key. The backend exposes this on `GET /api/chaos/status` as `preset`, and the UI uses it directly — no inference from field values needed.
+7. **Active variation display**: The backend reads the currently-served variation key via the native DevCycle SDK (`all_features(user)["chaos-preset"].variationKey`). `GET /api/chaos/status` exposes it as `preset` in the response payload (kept for back-compat), and the React UI surfaces it as "variation". No dedicated `chaos-preset-name` variable is required.
 
 8. **`AGENTS.md` updates**: After full implementation (Phase 3+), update the "API Endpoints" table in `AGENTS.md` to remove deleted PATCH/reset/preset endpoints, and add `preset` + `controlled_by` to the status response shape.
 
@@ -187,8 +184,9 @@ Completed:
 | `backend/routers/chaos.py` | Removed write endpoints; added `preset` + `controlled_by` to `/status` |
 | `backend/.env.example` | `DEVCYCLE_SERVER_SDK_KEY` already present |
 | `backend/README.md` | Chaos section rewritten as read-only/DevCycle-managed |
-| `frontend/src/context/ConfigContext.jsx` | Switched chaos polling to `/api/chaos/status`; exposed `chaosPreset` (write methods still to remove) |
-| `frontend/src/pages/ConfigPage.jsx` | Banner shows DevCycle-served preset name (still to drop presets grid + convert fields to read-only) |
+| `frontend/src/context/ConfigContext.jsx` | Polls `/api/chaos/status`; exposes `chaosVariation`; write methods removed |
+| `frontend/src/pages/ConfigPage.jsx` | Presets grid removed; field groups converted to read-only `ReadOnlyRow` display; DevCycle banner + dashboard link added; "variation" terminology |
+| `frontend/src/pages/ConfigPage.module.css` | Dead preset/slider/checkbox/range styles removed; added `.devcycleBanner`, `.devcycleVariationRow`, `.variationBadge`, `.readonlyRow` |
 | `flutter_frontend/lib/providers/config_provider.dart` | Pending: same treatment as React |
 | `flutter_frontend/lib/screens/config_screen.dart` | Pending: drop preset grid; read-only field groups + DevCycle banner |
 | `flutter_frontend/lib/widgets/{chaos_preset_buttons,llm_failures_section,latency_injection_section,http_errors_section}.dart` | Pending: delete or convert to read-only |

@@ -13,7 +13,6 @@ export function ConfigProvider({ children }) {
     llm_delay_ms: 0,
     llm_error_rate: 0.0,
     rate_limit_enabled: false,
-    rate_limit_after_n: 5,
     malformed_response_rate: 0.0,
     empty_response_rate: 0.0,
     hallucination_enabled: false,
@@ -30,26 +29,18 @@ export function ConfigProvider({ children }) {
     session_error_rate: 0.0,
   });
 
-  const [chaosPresets, setChaosPresets] = useState([]);
-  const [chaosPreset, setChaosPreset] = useState('unknown');
+  const [chaosVariation, setChaosVariation] = useState('unknown');
   const [loading, setLoading] = useState(true);
 
   // Fetch configs on mount
   useEffect(() => {
     async function fetchConfigs() {
       try {
-        const [statusRes, presetsRes] = await Promise.all([
-          fetch('/api/chaos/status'),
-          fetch('/api/chaos/presets'),
-        ]);
+        const statusRes = await fetch('/api/chaos/status');
         if (statusRes.ok) {
           const data = await statusRes.json();
           setChaosConfig(data.config);
-          setChaosPreset(data.preset ?? 'unknown');
-        }
-        if (presetsRes.ok) {
-          const data = await presetsRes.json();
-          setChaosPresets(data.presets || []);
+          setChaosVariation(data.preset ?? 'unknown');
         }
       } catch (err) {
         console.error('Failed to fetch configs:', err);
@@ -69,7 +60,7 @@ export function ConfigProvider({ children }) {
           if (res.ok) {
             const data = await res.json();
             setChaosConfig(data.config);
-            setChaosPreset(data.preset ?? 'unknown');
+            setChaosVariation(data.preset ?? 'unknown');
           }
         } catch (err) {
           // Silent fail
@@ -90,66 +81,20 @@ export function ConfigProvider({ children }) {
     });
   }, []);
 
-  const updateChaosConfig = useCallback(async (updates) => {
-    try {
-      const res = await fetch('/api/chaos', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setChaosConfig(data);
-        return data;
-      }
-    } catch (err) {
-      console.error('Failed to update chaos config:', err);
-    }
-    return null;
-  }, []);
-
-  const resetChaosConfig = useCallback(async () => {
-    try {
-      const res = await fetch('/api/chaos/reset', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setChaosConfig(data);
-        return data;
-      }
-    } catch (err) {
-      console.error('Failed to reset chaos config:', err);
-    }
-    return null;
-  }, []);
-
-  const applyPreset = useCallback(async (presetName) => {
-    try {
-      const res = await fetch(`/api/chaos/preset/${presetName}`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setChaosConfig(data);
-        return data;
-      }
-    } catch (err) {
-      console.error('Failed to apply preset:', err);
-    }
-    return null;
-  }, []);
-
   const refreshChaosConfig = useCallback(async () => {
     try {
       const res = await fetch('/api/chaos/status');
       if (res.ok) {
         const data = await res.json();
         setChaosConfig(data.config);
-        setChaosPreset(data.preset ?? 'unknown');
+        setChaosVariation(data.preset ?? 'unknown');
       }
     } catch (err) {
       // Silent fail
     }
   }, []);
 
-  const isAnyChaosActive = 
+  const isAnyChaosActive =
     chaosConfig.llm_delay_ms > 0 ||
     chaosConfig.llm_error_rate > 0 ||
     chaosConfig.rate_limit_enabled ||
@@ -169,14 +114,10 @@ export function ConfigProvider({ children }) {
       value={{
         appConfig,
         chaosConfig,
-        chaosPreset,
-        chaosPresets,
+        chaosVariation,
         loading,
         isAnyChaosActive,
         updateAppConfig,
-        updateChaosConfig,
-        resetChaosConfig,
-        applyPreset,
         refreshChaosConfig,
       }}
     >

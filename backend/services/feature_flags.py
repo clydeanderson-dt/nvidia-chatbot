@@ -37,3 +37,8 @@ def initialize_feature_flags() -> None:
 def get_openfeature_client():
     """Return the OpenFeature client."""
     return api.get_client()
+
+
+def get_devcycle_client() -> DevCycleLocalClient | None:
+    """Return the native DevCycle SDK client (or None if uninitialised)."""
+    return _devcycle_client
