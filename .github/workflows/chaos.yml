@@ -41,7 +41,7 @@ jobs:
           MIN_SECONDS=$((15 * 60))   # 15 minutes
           MAX_SECONDS=$((90 * 60))   # 90 minutes
           RANGE=$((MAX_SECONDS - MIN_SECONDS))
-          DURATION=60
+          DURATION=$((MIN_SECONDS + RANDOM % RANGE))
           MINUTES=$((DURATION / 60))
           echo "duration=$DURATION" >> $GITHUB_OUTPUT
           echo "⏱️  Chaos will run for $MINUTES minutes"

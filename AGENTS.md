@@ -6,7 +6,7 @@ This file documents the application for AI agents so they can quickly understand
 
 ## Active Migrations
 
-- **Chaos engineering → DevCycle feature flags** (in progress on branch `agents-refactor-chaos-engineering-feature-flags`). See [`docs/chaos-devcycle-migration.md`](docs/chaos-devcycle-migration.md) for the locked-in plan, DevCycle state, and per-file execution checklist. Resume with: "Read `docs/chaos-devcycle-migration.md` and start Phase 2."
+_None in progress. Chaos engineering → DevCycle feature flags migration completed; see [`docs/chaos-devcycle-migration.md`](docs/chaos-devcycle-migration.md) for the historical plan and gotchas._
 
 ## Overview
 
@@ -72,12 +72,9 @@ requirements.txt         — Python dependencies
 | `DELETE` | `/api/chat/{session_id}` | Clear server-side conversation history for a session |
 | `GET` | `/api/config` | Get current app configuration (system prompt, provider) |
 | `PATCH` | `/api/config` | Update app configuration |
-| `GET` | `/api/chaos` | Get current chaos/fault injection configuration |
-| `PATCH` | `/api/chaos` | Update chaos configuration |
-| `POST` | `/api/chaos/reset` | Reset all chaos settings to defaults |
-| `POST` | `/api/chaos/preset/{name}` | Apply a named chaos preset (healthy, slow_llm, flaky_network, rate_limited, degraded) |
-| `GET` | `/api/chaos/presets` | List available chaos presets |
-| `GET` | `/api/chaos/status` | Get chaos status (active flag + config) |
+| `GET` | `/api/chaos` | Get current chaos config (read-only; values served by DevCycle) |
+| `GET` | `/api/chaos/presets` | List available chaos preset names |
+| `GET` | `/api/chaos/status` | Get chaos status: `{active, config, preset, controlled_by: "devcycle"}` |
 | `POST` | `/api/config/reset` | Reset app configuration to defaults |
 
 ### `POST /api/chat` Request Body (`ChatRequest`)
@@ -122,7 +119,7 @@ main.jsx                       — Entry point; wraps App in BrowserRouter and C
 context/ConfigContext.jsx      — Global state for app config + chaos config; polls chaos every 5s
 hooks/useChat.js               — Chat state and API logic: messages, session ID, suggestions
 pages/ChatPage.jsx             — Chat page: header, chaos banner, message list, chips, input bar
-pages/ConfigPage.jsx           — Settings page: system prompt, provider, chaos presets and controls
+pages/ConfigPage.jsx           — Settings page: system prompt, provider, read-only chaos config (DevCycle-controlled)
 components/ChatWindow.jsx      — Scrollable message list, auto-scrolls to bottom
 components/MessageBubble.jsx   — Renders a single user or assistant message (markdown for assistant)
 components/InputBar.jsx        — Text input + send button
@@ -131,10 +128,10 @@ components/SuggestionChips.jsx — Follow-up question pill buttons (shown after 
 
 ### `ConfigContext` (key details)
 
-- Provides `appConfig` (system prompt, provider) and `chaosConfig` (all 17 chaos fields) to the entire app.
-- Fetches `GET /api/config`, `GET /api/chaos`, and `GET /api/chaos/presets` on mount.
-- Polls chaos config every 5 seconds and re-fetches on browser tab visibility change.
-- Exposes `updateAppConfig()`, `updateChaosConfig()`, `resetChaosConfig()`, and `applyPreset()` for the `ConfigPage`.
+- Provides `appConfig` (system prompt, provider) and `chaosConfig` (read-only chaos values served by DevCycle) to the entire app.
+- Fetches `GET /api/config` and `GET /api/chaos/status` on mount.
+- Polls chaos status every 5 seconds and re-fetches on browser tab visibility change.
+- Exposes `updateAppConfig()` for the `ConfigPage`. Chaos is read-only — write operations live in DevCycle.
 
 ### `useChat` Hook (key details)
 
@@ -161,15 +158,15 @@ lib/
     starter_request.dart       — StarterRequest (toJson)
     starter_response.dart      — StarterResponse (fromJson)
     app_config.dart            — AppConfig model (system prompt, provider)
-    chaos_config.dart          — ChaosConfig model (18 injectable failure fields)
+    chaos_config.dart          — ChaosConfig model + ChaosStatus wrapper (read-only; values from DevCycle)
   providers/
     chat_provider.dart         — ChangeNotifier; messages, session ID, suggestions
-    config_provider.dart       — ChangeNotifier; app config + chaos config, polls chaos every 5s
+    config_provider.dart       — ChangeNotifier; app config + chaos status, polls chaos every 5s
   services/
-    api_service.dart           — HTTP client (Dynatrace-instrumented); chat, config, and chaos endpoints
+    api_service.dart           — HTTP client (Dynatrace-instrumented); chat, config, and chaos status endpoints
   screens/
     chat_screen.dart           — Scaffold; chat UI with chaos banner, message list, chips, input bar
-    config_screen.dart         — Settings page: system prompt, provider, chaos presets and controls
+    config_screen.dart         — Settings page: system prompt, provider, read-only chaos config (DevCycle-controlled)
   widgets/
     chat_window.dart           — Reversed ListView of MessageBubble
     input_bar.dart             — TextField + send button (Dynatrace UserInteractionWidget)
@@ -178,10 +175,6 @@ lib/
     system_prompt_panel.dart   — ExpansionTile with TextField; locked when conversation active
     llm_provider_panel.dart    — ExpansionTile with radio group; locked when conversation active
     chaos_banner.dart          — Orange warning banner when chaos is active; tappable to open settings
-    chaos_preset_buttons.dart  — Grid of preset buttons (healthy, slow_llm, flaky_network, etc.)
-    llm_failures_section.dart  — Sliders and switches for LLM chaos fields
-    latency_injection_section.dart — Controls for fixed, random, and spike delay injection
-    http_errors_section.dart   — Sliders for HTTP 500/503 and session error rates
 ```
 
 ### Flutter key details
@@ -190,7 +183,7 @@ lib/
 - Use `10.0.2.2` instead of `localhost` when running on Android emulators.
 - **`dynatrace.config.yaml`** is gitignored — copy from `dynatrace.config.yaml.example` and populate with your Dynatrace Application ID and beacon URL before building.
 - State management: `provider` package with `ChatProvider` and `ConfigProvider` (`ChangeNotifier`).
-- `ConfigProvider` fetches app config and chaos config from the backend, polls chaos every 5 seconds, and re-fetches on app resume.
+- `ConfigProvider` fetches app config and chaos status from the backend, polls chaos every 5 seconds, and re-fetches on app resume. Chaos values are read-only and sourced from DevCycle.
 - Two routes: `/` (ChatScreen) and `/config` (ConfigScreen).
 - Session ID generated once per app launch with `const Uuid().v4()`.
 - All HTTP calls go through `Dynatrace().createHttpClient()` for automatic RUM tracing.

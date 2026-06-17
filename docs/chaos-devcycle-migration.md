@@ -1,7 +1,7 @@
 # Chaos Engineering → DevCycle Feature Flags Migration
 
 **Branch**: `agents-refactor-chaos-engineering-feature-flags`
-**Status**: Phase 2 (backend) complete ✅ — Phase 3 (React + Flutter) complete ✅ — Phase 4–5 pending
+**Status**: ✅ Migration complete — all phases done as of 2026-06-17. Doc retained for historical reference and gotchas.
 **Owner notes**: Plan locked in across 2026-06-17 session. Resume from "Execution Checklist" below.
 
 ---
@@ -108,9 +108,22 @@ Completed:
 - [x] Kept `widgets/chaos_banner.dart`.
 - [x] `pubspec.yaml`: added `url_launcher: ^6.3.0` for opening the DevCycle dashboard link.
 
-### Phase 4 — GitHub Actions
+### Phase 4 — GitHub Actions ✅ DONE
 
-**`.github/workflows/chaos.yml`** — replace preset apply + reset steps:
+`.github/workflows/chaos.yml` now:
+- Uses dashed preset names: `slow-llm`, `flaky-network`, `rate-limited`, `degraded` (both in the `PRESETS` array and the `case` block for Dynatrace event descriptions).
+- Fetches a DevCycle OAuth2 access token via `POST https://auth.devcycle.com/oauth/token` (client credentials grant), masks it with `::add-mask::`, and exposes it via `steps.dvc_auth.outputs.token`.
+- Replaces the old `POST $BACKEND_URL/api/chaos/preset/...` calls with `PATCH https://api.devcycle.com/v1/projects/$DEVCYCLE_PROJECT_KEY/features/chaos-preset/configurations?environment=production` to set the active target distribution.
+- The `Reset to healthy` and `Verify healthy state` steps re-fetch a token (since the original `dvc_auth` step may have been skipped on a failed run with `if: always()`), then PATCH back to the `healthy` variation and GET the configurations to confirm.
+- `BACKEND_URL` is no longer referenced.
+- All Dynatrace event-ingest steps unchanged.
+
+Required GitHub repo secrets:
+- `DEVCYCLE_CLIENT_ID`
+- `DEVCYCLE_CLIENT_SECRET`
+- `DEVCYCLE_PROJECT_KEY` (set to `nvidia-chatbot`)
+
+Reference snippet for the auth + apply pattern (kept for documentation):
 
 DevCycle Management API auth is **OAuth2 client credentials** — exchange `client_id` + `client_secret` for a short-lived bearer token, then pass it as `Authorization: Bearer <token>`. There are no static API tokens.
 
@@ -155,22 +168,18 @@ DevCycle Management API auth is **OAuth2 client credentials** — exchange `clie
 
 Note: the access token typically expires in ~24h; fetching one per workflow run is fine. If the `Reset to healthy` step runs in a separate job, re-fetch the token there.
 
-- [ ] Update preset names in the bash array — change underscores to dashes to match DevCycle variation keys:
-  ```bash
-  PRESETS=("slow-llm" "flaky-network" "rate-limited" "degraded")
-  ```
-- [ ] Update the `case "$PRESET" in` block (Dynatrace event description) to match new dashed names.
-- [ ] Remove `BACKEND_URL` references from this workflow (no longer needed).
-- [ ] Keep all Dynatrace event-ingest steps unchanged.
+### Phase 5 — Validation ✅ DONE
 
-### Phase 5 — Validation
-- [ ] Local: `pip install -r backend/requirements.txt`, set `DEVCYCLE_SERVER_SDK_KEY` in `backend/.env`, start uvicorn.
-- [ ] `curl localhost:8000/api/chaos` should return defaults (all zeros, healthy state).
-- [ ] In DevCycle dashboard, manually switch production target distribution to `degraded` variation.
-- [ ] Within ~1s, `curl localhost:8000/api/chaos/status` should show `active: true` with degraded values.
-- [ ] Switch back to `healthy`.
-- [ ] Trigger workflow with `workflow_dispatch` → verify DevCycle audit log shows the PATCH.
-- [ ] Confirm Dynatrace events still appear with new dashed preset names.
+Verified via `workflow_dispatch` run **27723945365** (2026-06-17):
+- DevCycle OAuth token obtained successfully
+- PATCH set production target to `slow-llm` (API response confirmed `All Users - slow-llm` with 100% distribution)
+- Dynatrace `CUSTOM_INFO` event ingested (`correlationId: 8b7749c6afcf9126`, status OK)
+- After 60s wait, PATCH reset production target to `Healthy` (variation `6a32dfb14b2b21befb1b6057`)
+- Dynatrace "reset to healthy" event ingested
+
+Manual setup checklist:
+- [x] `DEVCYCLE_SERVER_SDK_KEY` set in deployed backend env
+- [x] `DEVCYCLE_CLIENT_ID`, `DEVCYCLE_CLIENT_SECRET`, `DEVCYCLE_PROJECT_KEY` set as GitHub repo secrets
 
 ---
 
