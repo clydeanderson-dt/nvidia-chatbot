@@ -1,7 +1,7 @@
 # Chaos Engineering → DevCycle Feature Flags Migration
 
 **Branch**: `agents-refactor-chaos-engineering-feature-flags`
-**Status**: Phase 2 (backend) complete ✅ — Phase 3 React complete ✅ — Phase 3 Flutter + Phase 4–5 pending
+**Status**: Phase 2 (backend) complete ✅ — Phase 3 (React + Flutter) complete ✅ — Phase 4–5 pending
 **Owner notes**: Plan locked in across 2026-06-17 session. Resume from "Execution Checklist" below.
 
 ---
@@ -97,11 +97,14 @@ Completed:
 - [x] `pages/ConfigPage.module.css`: dead styles removed (`.presetGrid`, `.presetBtn*`, `.presetName`, `.presetDesc`, `.activeIndicator`, `.resetBtn`, `.slider`, `.checkboxField`, `.checkboxLabel`, `.rangeGroup`, `.numberInput`). New styles added for `.devcycleBanner`, `.devcycleVariationRow`, `.variationBadge`, `.readonlyRow`.
 - [x] `components/chaos-banner` / `ChatPage` banner: kept — still reflects active state from polled status.
 
-**Flutter (`flutter_frontend/lib/`)**:
-- [ ] `providers/config_provider.dart`: switch chaos polling to `/api/chaos/status`; surface `preset`; remove write methods.
-- [ ] `screens/config_screen.dart`: same treatment as React — drop the presets grid, keep field groups as read-only, show preset banner + DevCycle link.
-- [ ] Delete widgets: `chaos_preset_buttons.dart`, `llm_failures_section.dart` / `latency_injection_section.dart` / `http_errors_section.dart` if they only contained editable controls (otherwise convert to read-only).
-- [ ] Keep `widgets/chaos_banner.dart`.
+**Flutter (`flutter_frontend/lib/`)** — ✅ DONE:
+- [x] `models/chaos_config.dart`: removed `rateLimitAfterN` field, deleted `ChaosPreset` class and `chaosPresets` list, added `ChaosStatus` wrapper class for the `/api/chaos/status` payload.
+- [x] `services/api_service.dart`: replaced `getChaosConfig` with `getChaosStatus()` hitting `/api/chaos/status`; removed `patchChaosConfig`, `resetChaosConfig`, `applyChaosPreset`.
+- [x] `providers/config_provider.dart`: surfaces `chaosVariation` (from `status.preset`); `loadConfig` and `refreshChaosConfig` both read `/api/chaos/status`; all chaos write methods (`updateChaosConfig`, `resetChaosConfig`, `applyChaosPreset`) removed.
+- [x] `screens/config_screen.dart`: drops presets grid; LLM Failures / Latency Injection / HTTP Errors sections converted to read-only display rows via `_ReadOnlyRow` helper; chaos-active banner shows variation name; DevCycle banner with dashboard link (via `url_launcher`) added.
+- [x] Deleted widgets: `chaos_preset_buttons.dart`, `llm_failures_section.dart`, `latency_injection_section.dart`, `http_errors_section.dart`.
+- [x] Kept `widgets/chaos_banner.dart`.
+- [x] `pubspec.yaml`: added `url_launcher: ^6.3.0` for opening the DevCycle dashboard link.
 
 ### Phase 4 — GitHub Actions
 
@@ -187,8 +190,11 @@ Completed:
 | `frontend/src/context/ConfigContext.jsx` | Polls `/api/chaos/status`; exposes `chaosVariation`; write methods removed |
 | `frontend/src/pages/ConfigPage.jsx` | Presets grid removed; field groups converted to read-only `ReadOnlyRow` display; DevCycle banner + dashboard link added; "variation" terminology |
 | `frontend/src/pages/ConfigPage.module.css` | Dead preset/slider/checkbox/range styles removed; added `.devcycleBanner`, `.devcycleVariationRow`, `.variationBadge`, `.readonlyRow` |
-| `flutter_frontend/lib/providers/config_provider.dart` | Pending: same treatment as React |
-| `flutter_frontend/lib/screens/config_screen.dart` | Pending: drop preset grid; read-only field groups + DevCycle banner |
-| `flutter_frontend/lib/widgets/{chaos_preset_buttons,llm_failures_section,latency_injection_section,http_errors_section}.dart` | Pending: delete or convert to read-only |
+| `flutter_frontend/lib/models/chaos_config.dart` | Removed `rateLimitAfterN`, deleted `ChaosPreset`/`chaosPresets`, added `ChaosStatus` wrapper |
+| `flutter_frontend/lib/services/api_service.dart` | Replaced chaos CRUD methods with single `getChaosStatus()` |
+| `flutter_frontend/lib/providers/config_provider.dart` | Polls `/api/chaos/status`; exposes `chaosVariation`; write methods removed |
+| `flutter_frontend/lib/screens/config_screen.dart` | Presets grid removed; read-only field rows; DevCycle banner + dashboard link |
+| `flutter_frontend/lib/widgets/{chaos_preset_buttons,llm_failures_section,latency_injection_section,http_errors_section}.dart` | Deleted |
+| `flutter_frontend/pubspec.yaml` | Added `url_launcher: ^6.3.0` |
 | `.github/workflows/chaos.yml` | Pending: replace backend curl calls with DevCycle Management API calls; rename presets to dashes |
 | `AGENTS.md` | Pending: update endpoint list + chaos description |

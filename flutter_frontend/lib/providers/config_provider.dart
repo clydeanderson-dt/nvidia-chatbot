@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,23 +13,24 @@ const _kDefaultSystemPrompt = 'You are a helpful, knowledgeable, and friendly AI
 const _kDefaultProvider = 'nim_api';
 
 /// Provider for app and chaos configuration state.
-/// 
-/// Fetches configuration from the backend on init and provides methods
-/// to update settings. All state is in-memory only (no persistence).
-/// 
-/// Chaos config is refetched when the app resumes to stay in sync
-/// with changes made from other frontends.
+///
+/// App config (system prompt, provider) is persisted in SharedPreferences.
+/// Chaos config is read-only and sourced from the backend (controlled by
+/// DevCycle feature flags). It is refetched when the app resumes to stay
+/// in sync with DevCycle changes.
 class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ApiService _api = ApiService();
 
   AppConfig _appConfig = const AppConfig();
   ChaosConfig _chaosConfig = const ChaosConfig();
+  String _chaosVariation = 'unknown';
   bool _loading = false;
   String? _error;
 
   // Getters
   AppConfig get appConfig => _appConfig;
   ChaosConfig get chaosConfig => _chaosConfig;
+  String get chaosVariation => _chaosVariation;
   bool get loading => _loading;
   String? get error => _error;
   bool get isAnyChaosActive => _chaosConfig.isAnyActive;
@@ -41,14 +41,12 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   ConfigProvider() {
     loadConfig();
-    // Add app lifecycle observer for refetch on resume
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Refetch config when app comes to foreground
       loadConfig();
     }
   }
@@ -59,7 +57,7 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Load app config from SharedPreferences and chaos config from backend.
+  /// Load app config from SharedPreferences and chaos status from backend.
   Future<void> loadConfig() async {
     _loading = true;
     _error = null;
@@ -71,24 +69,27 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
       final provider = prefs.getString(_kProviderKey) ?? _kDefaultProvider;
       _appConfig = AppConfig(systemPrompt: systemPrompt, provider: provider);
 
-      _chaosConfig = await _api.getChaosConfig();
+      final status = await _api.getChaosStatus();
+      _chaosConfig = status.config;
+      _chaosVariation = status.preset ?? 'unknown';
     } catch (e) {
       debugPrint('Failed to load config: $e');
       _error = 'Failed to load configuration';
-      // Keep defaults on error
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  /// Refresh chaos config only (silent, no loading state).
-  /// Can be called manually when needed (e.g., after chat actions).
+  /// Refresh chaos status only (silent, no loading state).
   Future<void> refreshChaosConfig() async {
     try {
-      final config = await _api.getChaosConfig();
-      if (_chaosConfig != config) {
-        _chaosConfig = config;
+      final status = await _api.getChaosStatus();
+      final variation = status.preset ?? 'unknown';
+      if (_chaosConfig.toJson().toString() != status.config.toJson().toString() ||
+          _chaosVariation != variation) {
+        _chaosConfig = status.config;
+        _chaosVariation = variation;
         notifyListeners();
       }
     } catch (e) {
@@ -134,52 +135,6 @@ class ConfigProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setLlmProvider(String value) async {
     if (value == _appConfig.provider) return;
     await updateAppConfig(provider: value);
-  }
-
-  // ── Chaos Config Methods ───────────────────────────────────────────────────
-
-  /// Update chaos configuration (partial update).
-  Future<void> updateChaosConfig(Map<String, dynamic> updates) async {
-    if (updates.isEmpty) return;
-
-    try {
-      _chaosConfig = await _api.patchChaosConfig(updates);
-      _error = null;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to update chaos config: $e');
-      _error = 'Failed to update chaos settings';
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  /// Reset all chaos settings to defaults.
-  Future<void> resetChaosConfig() async {
-    try {
-      _chaosConfig = await _api.resetChaosConfig();
-      _error = null;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to reset chaos config: $e');
-      _error = 'Failed to reset chaos settings';
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  /// Apply a named chaos preset.
-  Future<void> applyChaosPreset(String presetName) async {
-    try {
-      _chaosConfig = await _api.applyChaosPreset(presetName);
-      _error = null;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to apply preset $presetName: $e');
-      _error = 'Failed to apply preset';
-      notifyListeners();
-      rethrow;
-    }
   }
 
   /// Clear any error state.

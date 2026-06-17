@@ -21,7 +21,6 @@ class ApiService {
       body: jsonEncode(request.toJson()),
     );
     if (response.statusCode != 200) {
-      // Try to parse error detail from response
       String errorMsg = 'Server error: ${response.statusCode}';
       try {
         final errorData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -57,50 +56,16 @@ class ApiService {
     }
   }
 
-  // ── Chaos Config API ─────────────────────────────────────────────────────────
+  // ── Chaos Status API (read-only; controlled by DevCycle) ──────────────────
 
-  Future<ChaosConfig> getChaosConfig() async {
+  Future<ChaosStatus> getChaosStatus() async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/chaos'),
+      Uri.parse('$baseUrl/api/chaos/status'),
       headers: _headers,
     );
     if (response.statusCode != 200) {
       throw Exception('Server error: ${response.statusCode}');
     }
-    return ChaosConfig.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-  }
-
-  Future<ChaosConfig> patchChaosConfig(Map<String, dynamic> updates) async {
-    final response = await _client.patch(
-      Uri.parse('$baseUrl/api/chaos'),
-      headers: _headers,
-      body: jsonEncode(updates),
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Server error: ${response.statusCode}');
-    }
-    return ChaosConfig.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-  }
-
-  Future<ChaosConfig> resetChaosConfig() async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl/api/chaos/reset'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Server error: ${response.statusCode}');
-    }
-    return ChaosConfig.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-  }
-
-  Future<ChaosConfig> applyChaosPreset(String presetName) async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl/api/chaos/preset/${Uri.encodeComponent(presetName)}'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Server error: ${response.statusCode}');
-    }
-    return ChaosConfig.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    return ChaosStatus.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }
