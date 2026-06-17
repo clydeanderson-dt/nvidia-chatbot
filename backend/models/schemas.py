@@ -12,7 +12,6 @@ class ChaosConfig(BaseModel):
     llm_delay_ms: int = Field(default=0, ge=0, description="Delay before LLM response (ms)")
     llm_error_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="Probability of LLM call failure")
     rate_limit_enabled: bool = Field(default=False, description="Enable rate limiting simulation")
-    rate_limit_after_n: int = Field(default=5, ge=1, description="Return 429 after N requests")
     malformed_response_rate: float = Field(
         default=0.0, ge=0.0, le=1.0, description="Probability of malformed JSON in suggestions"
     )
@@ -31,27 +30,6 @@ class ChaosConfig(BaseModel):
     http_500_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="Probability of HTTP 500 errors")
     http_503_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="Probability of HTTP 503 errors")
     session_error_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="Probability of session errors")
-
-
-class ChaosConfigUpdate(BaseModel):
-    """Partial update model for chaos config — all fields optional."""
-
-    llm_delay_ms: Optional[int] = None
-    llm_error_rate: Optional[float] = None
-    rate_limit_enabled: Optional[bool] = None
-    rate_limit_after_n: Optional[int] = None
-    malformed_response_rate: Optional[float] = None
-    empty_response_rate: Optional[float] = None
-    hallucination_enabled: Optional[bool] = None
-    token_limit_error_enabled: Optional[bool] = None
-    fixed_delay_ms: Optional[int] = None
-    random_delay_min_ms: Optional[int] = None
-    random_delay_max_ms: Optional[int] = None
-    spike_delay_ms: Optional[int] = None
-    spike_probability: Optional[float] = None
-    http_500_rate: Optional[float] = None
-    http_503_rate: Optional[float] = None
-    session_error_rate: Optional[float] = None
 
 
 # ── App Configuration ─────────────────────────────────────────────────────────

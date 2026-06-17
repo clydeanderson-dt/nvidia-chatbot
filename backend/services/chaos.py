@@ -5,104 +5,54 @@ Provides configurable fault injection including:
 - LLM-specific failures (delays, errors, malformed responses)
 - Latency injection (fixed, random, spike)
 - HTTP error injection (500, 503, session errors)
-- Preset profiles for common failure scenarios
+
+Configuration is read from DevCycle via OpenFeature; this module is
+read-only with respect to chaos state.
 """
 
 import asyncio
 import logging
 import random
-from typing import Optional
 
-from models.schemas import ChaosConfig, ChaosConfigUpdate
+from openfeature.evaluation_context import EvaluationContext
+
+from models.schemas import ChaosConfig
+from services.feature_flags import get_openfeature_client
 
 logger = logging.getLogger("chatbot.chaos")
 
-# ── Singleton Configuration ───────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────
 
-_chaos_config = ChaosConfig()
+RATE_LIMIT_THRESHOLD = 3
+
+_CHAOS_CONTEXT = EvaluationContext(targeting_key="server-chaos")
+
 _request_count = 0  # For rate limiting simulation
 
 
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+
 def get_config() -> ChaosConfig:
-    """Return the current chaos configuration."""
-    return _chaos_config
-
-
-def update_config(updates: ChaosConfigUpdate) -> ChaosConfig:
-    """Partially update the chaos configuration."""
-    global _chaos_config
-    update_data = updates.model_dump(exclude_unset=True)
-    _chaos_config = _chaos_config.model_copy(update=update_data)
-    logger.warning("Chaos config updated: %s", update_data)
-    return _chaos_config
-
-
-def reset_config() -> ChaosConfig:
-    """Reset chaos configuration to defaults (all disabled)."""
-    global _chaos_config, _request_count
-    _chaos_config = ChaosConfig()
-    _request_count = 0
-    logger.info("Chaos config reset to defaults")
-    return _chaos_config
-
-
-# ── Preset Profiles ───────────────────────────────────────────────────────────
-
-PRESETS: dict[str, ChaosConfigUpdate] = {
-    "healthy": ChaosConfigUpdate(
-        llm_delay_ms=0,
-        llm_error_rate=0.0,
-        rate_limit_enabled=False,
-        malformed_response_rate=0.0,
-        empty_response_rate=0.0,
-        hallucination_enabled=False,
-        token_limit_error_enabled=False,
-        fixed_delay_ms=0,
-        random_delay_min_ms=0,
-        random_delay_max_ms=0,
-        spike_delay_ms=0,
-        spike_probability=0.0,
-        http_500_rate=0.0,
-        http_503_rate=0.0,
-        session_error_rate=0.0,
-    ),
-    "slow_llm": ChaosConfigUpdate(
-        llm_delay_ms=5000,
-    ),
-    "flaky_network": ChaosConfigUpdate(
-        http_500_rate=0.3,
-        random_delay_min_ms=500,
-        random_delay_max_ms=2000,
-    ),
-    "rate_limited": ChaosConfigUpdate(
-        rate_limit_enabled=True,
-        rate_limit_after_n=3,
-    ),
-    "degraded": ChaosConfigUpdate(
-        llm_error_rate=0.2,
-        empty_response_rate=0.1,
-        fixed_delay_ms=1000,
-    ),
-}
-
-
-def apply_preset(name: str) -> Optional[ChaosConfig]:
-    """Apply a named preset profile. Returns None if preset not found."""
-    preset = PRESETS.get(name)
-    if preset is None:
-        return None
-
-    # Always reset first, then apply the preset values on a clean slate
-    reset_config()
-    if name == "healthy":
-        return _chaos_config
-    else:
-        return update_config(preset)
-
-
-def list_presets() -> list[str]:
-    """Return list of available preset names."""
-    return list(PRESETS.keys())
+    """Read the current chaos configuration from DevCycle (via OpenFeature)."""
+    c = get_openfeature_client()
+    return ChaosConfig(
+        llm_delay_ms=int(c.get_float_value("chaos-llm-delay-ms", 0, _CHAOS_CONTEXT)),
+        llm_error_rate=c.get_float_value("chaos-llm-error-rate", 0.0, _CHAOS_CONTEXT),
+        rate_limit_enabled=c.get_boolean_value("chaos-rate-limit-enabled", False, _CHAOS_CONTEXT),
+        malformed_response_rate=c.get_float_value("chaos-malformed-response-rate", 0.0, _CHAOS_CONTEXT),
+        empty_response_rate=c.get_float_value("chaos-empty-response-rate", 0.0, _CHAOS_CONTEXT),
+        hallucination_enabled=c.get_boolean_value("chaos-hallucination-enabled", False, _CHAOS_CONTEXT),
+        token_limit_error_enabled=c.get_boolean_value("chaos-token-limit-error-enabled", False, _CHAOS_CONTEXT),
+        fixed_delay_ms=int(c.get_float_value("chaos-fixed-delay-ms", 0, _CHAOS_CONTEXT)),
+        random_delay_min_ms=int(c.get_float_value("chaos-random-delay-min-ms", 0, _CHAOS_CONTEXT)),
+        random_delay_max_ms=int(c.get_float_value("chaos-random-delay-max-ms", 0, _CHAOS_CONTEXT)),
+        spike_delay_ms=int(c.get_float_value("chaos-spike-delay-ms", 0, _CHAOS_CONTEXT)),
+        spike_probability=c.get_float_value("chaos-spike-probability", 0.0, _CHAOS_CONTEXT),
+        http_500_rate=c.get_float_value("chaos-http-500-rate", 0.0, _CHAOS_CONTEXT),
+        http_503_rate=c.get_float_value("chaos-http-503-rate", 0.0, _CHAOS_CONTEXT),
+        session_error_rate=c.get_float_value("chaos-session-error-rate", 0.0, _CHAOS_CONTEXT),
+    )
 
 
 # ── Chaos Helpers ─────────────────────────────────────────────────────────────
@@ -119,7 +69,7 @@ def should_inject(rate: float) -> bool:
 
 def get_total_delay_ms() -> int:
     """Calculate total delay to inject (fixed + random + spike)."""
-    cfg = _chaos_config
+    cfg = get_config()
     delay = cfg.fixed_delay_ms
 
     # Random delay
@@ -147,13 +97,17 @@ async def inject_delay() -> int:
 def check_rate_limit() -> bool:
     """Check if rate limit should trigger. Returns True if limit exceeded."""
     global _request_count
-    cfg = _chaos_config
+    cfg = get_config()
     if not cfg.rate_limit_enabled:
         return False
 
     _request_count += 1
-    if _request_count > cfg.rate_limit_after_n:
-        logger.warning("Chaos: rate limit triggered (request %d > %d)", _request_count, cfg.rate_limit_after_n)
+    if _request_count > RATE_LIMIT_THRESHOLD:
+        logger.warning(
+            "Chaos: rate limit triggered (request %d > %d)",
+            _request_count,
+            RATE_LIMIT_THRESHOLD,
+        )
         return True
     return False
 
@@ -166,7 +120,7 @@ def reset_rate_limit_counter() -> None:
 
 def is_any_chaos_active() -> bool:
     """Check if any chaos injection is currently enabled."""
-    cfg = _chaos_config
+    cfg = get_config()
     return any(
         [
             cfg.llm_delay_ms > 0,
@@ -225,7 +179,7 @@ async def check_pre_llm_chaos() -> dict:
     Returns dict with chaos metadata for span attributes.
     Raises ChaosInjectedError subclasses on injected failures.
     """
-    cfg = _chaos_config
+    cfg = get_config()
     chaos_meta = {"chaos.injected": False}
 
     # Rate limit check
@@ -260,7 +214,7 @@ def modify_llm_response(content: str) -> tuple[str, dict]:
     Apply post-LLM chaos modifications to response content.
     Returns (modified_content, chaos_metadata).
     """
-    cfg = _chaos_config
+    cfg = get_config()
     chaos_meta = {}
 
     # Empty response injection
@@ -286,4 +240,10 @@ def modify_llm_response(content: str) -> tuple[str, dict]:
 
 def should_malform_suggestions() -> bool:
     """Check if suggestions should be malformed."""
-    return should_inject(_chaos_config.malformed_response_rate)
+    return should_inject(get_config().malformed_response_rate)
+
+
+def get_active_preset_name() -> str:
+    """Return the DevCycle variation key currently being served."""
+    c = get_openfeature_client()
+    return c.get_string_value("chaos-preset-name", "unknown", _CHAOS_CONTEXT)

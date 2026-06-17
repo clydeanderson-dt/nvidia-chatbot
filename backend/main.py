@@ -100,10 +100,12 @@ from routers.chat import router, get_chaos_error_message  # noqa: E402
 from routers.chaos import router as chaos_router  # noqa: E402
 from routers.config import router as config_router  # noqa: E402
 from services import chaos as chaos_service  # noqa: E402
+from services.feature_flags import initialize_feature_flags  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    initialize_feature_flags()
     logger.info("Application started | app=%s", _APP_NAME)
     yield
     logger.info("Application shutting down | app=%s", _APP_NAME)
