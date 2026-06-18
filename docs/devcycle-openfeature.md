@@ -362,20 +362,3 @@ working unchanged. The one DevCycle-specific bit — `get_active_preset_name()`
 using `all_features(...).variationKey` — would need an equivalent on the
 new provider (or replace it with a dedicated string variable).
 
----
-
-## File map
-
-| File | Role |
-|---|---|
-| `backend/services/feature_flags.py` | Initialize DevCycle, register OpenFeature provider, expose both clients |
-| `backend/services/chaos.py` | Read flags via OpenFeature, apply fault injection, expose helpers |
-| `backend/routers/chaos.py` | Read-only HTTP endpoints |
-| `backend/main.py` | Calls `initialize_feature_flags()` on startup |
-| `backend/models/schemas.py` | `ChaosConfig` Pydantic model |
-| `frontend/src/context/ConfigContext.jsx` | Polls `/api/chaos/status`, exposes `chaosVariation` |
-| `frontend/src/pages/ConfigPage.jsx` | Read-only chaos display + DevCycle banner |
-| `flutter_frontend/lib/providers/config_provider.dart` | Polls `/api/chaos/status` |
-| `flutter_frontend/lib/screens/config_screen.dart` | Read-only chaos display + DevCycle banner |
-| `.github/workflows/chaos.yml` | OAuth2 + Management API PATCH to switch variation |
-| `docs/chaos-devcycle-migration.md` | Historical migration plan and detailed gotchas |

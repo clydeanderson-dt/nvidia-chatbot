@@ -19,28 +19,18 @@ FastAPI application that manages AI chat sessions via LangChain and the NVIDIA N
 
 ## Environment variables
 
-Configuration is read from a single `.env` file at the **repo root** (shared
-with the load generator and the frontend build). Copy the example, then fill
-in at least `NVIDIA_API_KEY`:
+This app reads from a single `.env` file at the **repo root** — shared with
+the load generator and the frontend build. See
+[`deploy/README.md`](../deploy/README.md) for the canonical variable list and
+setup commands.
 
-```bash
-cp ../.env.example ../.env
-```
-
-The backend variables consumed from that file are:
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NVIDIA_API_KEY` | Yes | — | NVIDIA NIM API key (`nvapi-…`). Required for the `nim_api` provider. |
-| `DEVCYCLE_SERVER_SDK_KEY` | No | — | DevCycle server SDK key (`dvc_server_...`). Enables OpenFeature provider initialization at app startup. |
-| `SELF_HOSTED_NIM_URL` | No | — | Base URL of a self-hosted NIM server (e.g. `http://localhost:8080`). Enables the `self_hosted` provider. |
-| `OTLP_ENDPOINT` | No | — | Base URL of the OTLP/HTTP collector (e.g. `https://{environmentId}.live.dynatrace.com`). Traces and logs are skipped with a warning if absent. |
-| `ALLOWED_ORIGINS` | No | `http://localhost:5173,http://localhost:3000` | Comma-separated CORS origins. |
+Backend-specific variables: `NVIDIA_API_KEY` (required for `nim_api`
+provider), `SELF_HOSTED_NIM_URL` (enables `self_hosted` provider),
+`DEVCYCLE_SERVER_SDK_KEY`, `OTLP_ENDPOINT`, `ALLOWED_ORIGINS`.
 
 > `backend/main.py` and `backend/services/llm.py` call `load_dotenv()` with an
 > explicit path to the repo-root `.env`, so they work regardless of the
-> current working directory. See `.env.example` at the repo root for the full
-> set of variables (including load-generator and frontend-build vars).
+> current working directory.
 
 ---
 
@@ -154,48 +144,13 @@ Partially update the app configuration.
 
 ## Chaos Engineering API
 
-The chaos API exposes the current fault-injection state. Configuration is
-managed externally via **DevCycle feature flags** (see `services/feature_flags.py`)
-and is **read-only** from this service. To change chaos state, update the
-`chaos-preset` feature in the DevCycle dashboard.
+`GET /api/chaos`, `GET /api/chaos/status`, and `GET /api/chaos/presets`
+expose the current fault-injection state. Configuration is **read-only** from
+this service — it is owned by DevCycle feature flags.
 
-### Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/chaos` | Current chaos configuration (resolved from DevCycle) |
-| `GET` | `/api/chaos/status` | `{active, config, controlled_by: "devcycle"}` |
-| `GET` | `/api/chaos/presets` | Available DevCycle variation keys |
-
-### Chaos Configuration Fields
-
-| Category | Field | Type | Description |
-|---|---|---|---|
-| **LLM Failures** | `llm_delay_ms` | int | Delay before LLM response (ms) |
-| | `llm_error_rate` | float | Probability of LLM call failure (0.0–1.0) |
-| | `rate_limit_enabled` | bool | Enable rate limiting simulation (429 after 3 requests) |
-| | `malformed_response_rate` | float | Probability of malformed JSON in suggestions |
-| | `empty_response_rate` | float | Probability of empty LLM response |
-| | `hallucination_enabled` | bool | Inject hallucination marker text |
-| | `token_limit_error_enabled` | bool | Simulate token/context limit errors |
-| **Latency** | `fixed_delay_ms` | int | Fixed delay added to all responses (ms) |
-| | `random_delay_min_ms` | int | Minimum random delay (ms) |
-| | `random_delay_max_ms` | int | Maximum random delay (ms) |
-| | `spike_delay_ms` | int | Spike delay amount (ms) |
-| | `spike_probability` | float | Probability of spike delay (0.0–1.0) |
-| **HTTP Errors** | `http_500_rate` | float | Probability of HTTP 500 errors |
-| | `http_503_rate` | float | Probability of HTTP 503 errors |
-| | `session_error_rate` | float | Probability of session errors |
-
-### Chaos Presets (DevCycle variations)
-
-| Preset | Effect |
-|---|---|
-| `healthy` | All chaos disabled |
-| `slow-llm` | 5 second LLM delay |
-| `flaky-network` | 30% HTTP 500 errors + random delays (500–2000ms) |
-| `rate-limited` | 429 after 3 requests |
-| `degraded` | 20% LLM errors, 10% empty responses, 1s fixed delay |
+See **[`docs/devcycle-openfeature.md`](../docs/devcycle-openfeature.md)** for
+the chaos configuration fields, the available presets/variations, and how to
+change them.
 
 ---
 
@@ -241,13 +196,13 @@ curl http://localhost:8000/api/health
 
 ## Telemetry
 
-The backend uses the [Traceloop SDK](https://www.traceloop.com/docs) to instrument LangChain, which exports spans to Dynatrace via OTLP/HTTP.
+The backend uses the [Traceloop SDK](https://www.traceloop.com/docs) to
+instrument LangChain and exports OTLP/HTTP traces and logs to Dynatrace when
+`OTLP_ENDPOINT` is set. Missing `OTLP_ENDPOINT` only logs a warning — the
+server runs without telemetry.
 
-- **Traceloop.init()** is called before the FastAPI app is constructed so that instrumentation wraps everything.
-- All LLM calls are annotated with `@workflow` / `@task` decorators.
-- A custom span processor normalises the `gen_ai.system` attribute from `"Langchain"` → `"nvidia"` for OpenTelemetry GenAI semantic convention compliance.
-- If `OTLP_ENDPOINT` is absent, the backend logs a warning and continues without exporting telemetry — no functionality is lost.
-- When `OTLP_ENDPOINT` is set, Python log records are also bridged to Dynatrace via `opentelemetry-instrumentation-logging`.
+See **[`docs/opentelemetry-instrumentation.md`](../docs/opentelemetry-instrumentation.md)**
+for the full instrumentation design, init order, and gotchas.
 
 ---
 

@@ -461,23 +461,3 @@ fetch user.events
    the frontend (`npm run build`) — restarting the backend is not enough.
    Flutter is the same: regenerate native projects after editing
    `dynatrace.config.yaml`.
-
----
-
-## File map
-
-| File | Role |
-|---|---|
-| `backend/main.py` | Traceloop init, OTel log pipeline, `_FixGenAiSystemProcessor`, `FastAPIInstrumentor` |
-| `backend/services/llm.py` | `@workflow` / `@task` decorators, manual `session.id` and `chaos.*` span attrs |
-| `backend/routers/chat.py` | Manual `chaos.injected` / `chaos.type` attrs on chaos paths |
-| `backend/requirements.txt` | Traceloop + OTel package pins |
-| `load_gen/load_gen.py` | Standalone `TracerProvider`, `OTLPSpanExporter`, `HTTPXClientInstrumentor` |
-| `load_gen/requirements.txt` | OTel SDK + httpx instrumentation pins |
-| `frontend/index.html` | `<script src="%VITE_DYNATRACE_RUM_URL%">` agentless RUM tag |
-| `frontend/.env.example` | Documents `VITE_DYNATRACE_RUM_URL` |
-| `flutter_frontend/lib/main.dart` | `Dynatrace().start(...)` + `DynatraceNavigationObserver` |
-| `flutter_frontend/lib/services/api_service.dart` | `Dynatrace().createHttpClient()` — auto-instrumented HTTP |
-| `flutter_frontend/lib/widgets/*.dart`, `screens/*.dart` | `UserInteractionWidget` wrappers for RUM action attribution |
-| `flutter_frontend/dynatrace.config.yaml.example` | Per-platform Application ID + beacon URL template |
-| `.env.example` | Documents `OTLP_ENDPOINT` and `VITE_DYNATRACE_RUM_URL` |

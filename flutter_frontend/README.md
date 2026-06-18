@@ -29,10 +29,6 @@ Flutter chatbot UI that mirrors the React frontend. Communicates with the backen
 | `lib/widgets/system_prompt_panel.dart` | `ExpansionTile` with `TextField`; locked when a conversation is active |
 | `lib/widgets/llm_provider_panel.dart` | `ExpansionTile` with radio group for `nim_api` / `self_hosted`; locked when a conversation is active |
 | `lib/widgets/chaos_banner.dart` | Orange warning banner when chaos is active; tappable to open settings |
-| `lib/widgets/chaos_preset_buttons.dart` | Grid of preset buttons (healthy, slow_llm, flaky_network, etc.) |
-| `lib/widgets/llm_failures_section.dart` | Sliders and switches for LLM chaos fields |
-| `lib/widgets/latency_injection_section.dart` | Controls for fixed, random, and spike delay injection |
-| `lib/widgets/http_errors_section.dart` | Sliders for HTTP 500/503 and session error rates |
 | `lib/models/chat_message.dart` | ChatMessage model (role, content) |
 | `lib/models/chat_request.dart` | ChatRequest model (toJson) |
 | `lib/models/chat_response.dart` | ChatResponse model (fromJson) |
@@ -116,35 +112,16 @@ Run the app with the server's URL instead either using flutter run (e.g. `--dart
 
 ## Key behaviours
 
-### Routing
+For the full design rationale (routing, session lifecycle, system-prompt
+and provider flow, starter/follow-up suggestions, chaos read-only model),
+see [`docs/architecture.md`](../docs/architecture.md).
 
-- Two routes: `/` (ChatScreen) and `/config` (ConfigScreen).
-- The chat screen app bar includes a settings icon to navigate to `/config` and a clear button to reset the conversation.
+Component-specific notes:
 
-### Session ID
-
-A UUID is generated once per app launch via `const Uuid().v4()` and is stable for the lifetime of the process. Restarting the app creates a new session — previous messages are lost from both the UI and the server.
-
-### System prompt and provider
-
-- The system prompt and LLM provider are managed on the `/config` settings screen via `ConfigProvider`.
-- Changes are saved to the backend via `PATCH /api/config` and take effect on the next chat message.
-- `ChatProvider` delegates to `ConfigProvider` for system prompt and provider values.
-
-### Chaos engineering
-
-- `ConfigProvider` fetches chaos config on init and polls every 5 seconds to stay in sync.
-- When any chaos setting is active, an orange warning banner appears on the chat screen.
-- The settings screen (`/config`) provides preset buttons (healthy, slow_llm, flaky_network, rate_limited, degraded) and granular controls for LLM failures, latency injection, and HTTP error rates.
-
-### Starter suggestions
-
-When the conversation is empty (on launch, or after clearing history), the app calls `POST /api/chat/starters` using the current system prompt and displays the results as suggestion chips.
-
-### Follow-up suggestions
-
-After each assistant reply, the backend returns up to 3 follow-up question strings. These appear as chips below the reply. Tapping a chip sends that question as a new message and clears the chips.
-
-### Markdown rendering
-
-Assistant messages are rendered using `flutter_markdown`, supporting code blocks, tables, links, and lists.
+- **Session ID** — generated once per app launch via `const Uuid().v4()`;
+  restarting the app creates a new session.
+- **Routing** — `/` is the chat screen, `/config` is the settings screen.
+- **Markdown** — assistant messages render via `flutter_markdown`.
+- **Chaos** — `ConfigProvider` polls `/api/chaos/status` every 5s and on app
+  resume; chaos is read-only here (controlled by DevCycle). See
+  [`docs/devcycle-openfeature.md`](../docs/devcycle-openfeature.md).

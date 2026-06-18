@@ -128,17 +128,15 @@ backend/
 1. **Load `.env`** from repo root (explicit path so it works regardless of
    `cwd`; systemd uses the same file via `EnvironmentFile=`).
 2. **Initialise Traceloop** with the OTLP endpoint — *skipped* with a warning
-   if `OTLP_ENDPOINT` is absent.
-3. **Set up OTel `LoggerProvider`** sharing the resource (so logs carry
-   `service.name`); bridge Python `logging` → OTel via `LoggingInstrumentor`.
-4. **Register `_FixGenAiSystemProcessor`** that rewrites Traceloop's
-   `gen_ai.system="Langchain"` → `"nvidia"` to match the OTel GenAI spec.
-5. **Create FastAPI app** with a lifespan handler that calls
+   if `OTLP_ENDPOINT` is absent. Telemetry setup details (the
+   `_FixGenAiSystemProcessor`, the log pipeline, `LoggingInstrumentor`) are
+   documented in [`opentelemetry-instrumentation.md`](opentelemetry-instrumentation.md).
+3. **Create FastAPI app** with a lifespan handler that calls
    `initialize_feature_flags()`; instrument with `FastAPIInstrumentor`.
-6. **Register exception handler** mapping `ChaosInjectedError` subclasses to
+4. **Register exception handler** mapping `ChaosInjectedError` subclasses to
    user-friendly HTTP status codes + messages.
-7. **Apply CORS middleware** from `ALLOWED_ORIGINS` (default: localhost dev).
-8. **Include three routers** (`chat`, `chaos`, `config`).
+5. **Apply CORS middleware** from `ALLOWED_ORIGINS` (default: localhost dev).
+6. **Include three routers** (`chat`, `chaos`, `config`).
 
 ### LLM service (`services/llm.py`)
 
@@ -196,103 +194,49 @@ toggles) from OpenFeature on every request and exposes helpers
 ## Frontends
 
 Both frontends implement the same two-screen app — chat + config — and
-consume the same HTTP API. They differ only in framework idioms.
+consume the same HTTP API. They differ only in framework idioms. Component
+file maps live in each frontend's README:
 
-### React (`frontend/src/`)
+- React: [`frontend/README.md`](../frontend/README.md)
+- Flutter: [`flutter_frontend/README.md`](../flutter_frontend/README.md)
 
-```
-App.jsx                        — Router: / → ChatPage, /config → ConfigPage
-main.jsx                       — Wraps App in BrowserRouter + ConfigProvider
-context/ConfigContext.jsx      — Global app config + chaos status; polls
-                                 /api/chaos/status every 5s + on tab focus
-hooks/useChat.js               — Messages, sessionId (crypto.randomUUID()),
-                                 suggestions; calls /api/chat
-pages/ChatPage.jsx             — Header, chaos banner, ChatWindow, chips,
-                                 input bar
-pages/ConfigPage.jsx           — Edit app config; read-only chaos display
-                                 with DevCycle dashboard link
-components/                    — ChatWindow, MessageBubble (markdown for
-                                 assistant), InputBar, SuggestionChips
-```
+Key shared behaviours:
 
-- Vite dev server proxies `/api` → `http://localhost:8000`.
-- `useChat` reads `appConfig` from context — it does **not** locally manage
-  system prompt or provider; the request body omits them and lets the
-  server use its own config.
-- Suggestion chips clear immediately when the user sends a new message.
-- Dynatrace RUM is loaded via the standard JS agent.
+- **Routing** — both expose `/` (chat) and `/config` (settings).
+- **Session ID** — generated client-side (React: per browser tab via
+  `crypto.randomUUID()`; Flutter: per app launch via `const Uuid().v4()`).
+- **System prompt and provider** — managed via `PATCH /api/config`; the
+  chat hook reads them from context and does **not** send them in the
+  request body, so the server uses its stored config as the source of truth.
+- **Suggestion chips** — clear immediately when the user sends a new message.
+- **Chaos** — both poll `/api/chaos/status` every 5s and treat the result as
+  **observe-only** — DevCycle (driven by `.github/workflows/chaos.yml`) is
+  the only place chaos can be changed.
+- **RUM** — React uses the standard Dynatrace JS agent; Flutter uses
+  `dynatrace_flutter_plugin` + `Dynatrace().createHttpClient()` so every
+  request is auto-instrumented.
 
-### Flutter (`flutter_frontend/lib/`)
-
-```
-main.dart                       — Starts Dynatrace, builds MaterialApp
-config.dart                     — baseUrl from --dart-define=BASE_URL=...
-                                  (default http://localhost:8000)
-providers/
-  chat_provider.dart            — ChangeNotifier: messages, sessionId, chips
-  config_provider.dart          — ChangeNotifier: app config + chaos status,
-                                  polls every 5s, re-fetches on app resume
-services/api_service.dart       — HTTP client built from
-                                  Dynatrace().createHttpClient() so every
-                                  request is auto-instrumented for RUM
-screens/                        — chat_screen.dart, config_screen.dart
-widgets/                        — ChatWindow, InputBar, MessageBubble,
-                                  SuggestionChips, ChaosBanner,
-                                  ChaosPresetButtons + read-only chaos
-                                  detail sections
-models/                         — chat_message, chat_request/response,
-                                  starter_request/response, app_config,
-                                  chaos_config
-```
-
-- State management: `provider` package — same mental model as React Context.
-- `dynatrace.config.yaml` (gitignored) holds the Application ID and beacon
-  URL. Copy from `dynatrace.config.yaml.example` before building.
-- Android emulator note: use `--dart-define=BASE_URL=http://10.0.2.2:8000`
-  instead of `localhost`.
-
-Both frontends treat chaos as **observe-only** — DevCycle (driven by a
-GitHub Actions workflow) is the only place chaos can be changed.
+Flutter-specific gotcha: Android emulator needs
+`--dart-define=BASE_URL=http://10.0.2.2:8000` instead of `localhost`.
 
 ---
 
 ## Observability pipeline
 
 ```
-Backend code  ──► Traceloop SDK (LangChain instrumentation)
-              ──► FastAPIInstrumentor                ┐
-              ──► LoggingInstrumentor                ├──► OTel SDK
-              ──► _FixGenAiSystemProcessor           │     (resource = service.name)
-                                                     ▼
-                                          OTLP/HTTP exporter
-                                                     │
-                                                     ▼
-                          Dynatrace tenant (traces + logs)
-
-React frontend  ─► Dynatrace JS RUM agent        ─►  Dynatrace (user.events,
-Flutter frontend ─► dynatrace_flutter_plugin     ─►  user.sessions)
+Backend code     ──► Traceloop SDK + FastAPI/Logging instrumentation ──► OTLP/HTTP
+Load generator   ──► OTel SDK + HTTPX instrumentation                ──► OTLP/HTTP
+React frontend   ──► Dynatrace JS RUM agent                          ──►  Dynatrace tenant
+Flutter frontend ──► dynatrace_flutter_plugin                        ──►
 ```
 
-Key points:
+Telemetry is **optional** — every OTel branch is guarded; missing
+`OTLP_ENDPOINT` only logs a warning. Trace context propagates load_gen →
+backend → NVIDIA via injected `traceparent` headers.
 
-- **One service name.** `_APP_NAME = "nvidia-chatbot"` flows through the
-  shared `Resource` so spans *and* logs land under the same service in
-  Dynatrace (no `unknown_service`).
-- **GenAI conventions are corrected on egress.** Traceloop's LangChain
-  instrumentation sets `gen_ai.system="Langchain"`; a custom
-  `SpanProcessor` overrides it to `"nvidia"` on `on_end()` so dashboards
-  filtering by provider work.
-- **Trace ID injection.** `LoggingInstrumentor(set_logging_format=True)`
-  puts `otelTraceID`/`otelSpanID` into every Python log record, then
-  forces root logger back to `INFO` to avoid debug flood.
-- **Frontend RUM** runs independently and correlates with backend traces
-  via the standard W3C `traceparent` headers Dynatrace emits.
-- **Everything is optional.** Missing `OTLP_ENDPOINT` → no exporters
-  registered, app still runs. Missing Dynatrace config in Flutter → fall
-  back to bare HTTP client.
-
-See `docs/opentelemetry-instrumentation.md` for the deep dive on
-instrumentation choices.
+See **[`opentelemetry-instrumentation.md`](opentelemetry-instrumentation.md)**
+for the full design (init order, `_FixGenAiSystemProcessor`, log bridging,
+RUM specifics, gotchas).
 
 ---
 
@@ -320,10 +264,9 @@ No secret is ever exposed to a frontend — they only see the backend URL.
 ## External control surfaces
 
 - **DevCycle Management API** (via `.github/workflows/chaos.yml`) — the
-  only thing that can change chaos state. PATCHes the production target of
-  the `chaos-preset` feature; the backend's local-bucketing cache picks up
-  the new variation within ~1s. Detailed in
-  [`devcycle-openfeature.md`](devcycle-openfeature.md).
+  only thing that can change chaos state. See
+  [`devcycle-openfeature.md`](devcycle-openfeature.md) for the OAuth flow,
+  PATCH payload, and propagation details.
 - **Backend `/api/config` PATCH** — changes the server-side fallback
   system prompt and provider. Lives only in memory.
 - **Per-request overrides** — any `/api/chat` request can include its own
