@@ -31,7 +31,6 @@ dist-ssr/
 # ── IDEs ───────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
-.claude/
 !.vscode/extensions.json
 *.suo
 *.ntvs*
