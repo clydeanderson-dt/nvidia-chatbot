@@ -6,7 +6,7 @@ langchain-nvidia-ai-endpoints==0.3.9
 langchain-community==0.3.20
 python-dotenv==1.0.1
 pydantic==2.10.6
-openfeature-sdk==0.8.3
+openfeature-sdk==0.8.4
 openfeature-hooks-opentelemetry==0.3.1
 devcycle-python-server-sdk==3.13.10
 
