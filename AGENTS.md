@@ -119,3 +119,30 @@ fetch user.sessions
 fetch logs, from:now() - 30m
 | filter service.name == "nvidia-chatbot"
 ```
+
+### Feature flag evaluations
+
+DevCycle flag evaluations are emitted as **span events** on the active parent
+span via the OpenFeature OTel `TracingHook` (registered in
+`backend/services/feature_flags.py`). They are not their own spans.
+
+Dynatrace gotchas:
+- The field is `span.events` (not `events` — querying `events` returns nothing).
+- After `expand span.events`, event attributes live at the **top level** of the
+  expanded record, keyed by their semconv name. The event name field is
+  `span_event.name`.
+- `span.id` is a UID — compare with `toUid("hex-string")`.
+
+Example — count evaluations per flag/value:
+
+```
+fetch spans, from:now() - 15m
+| filter dt.service.name == "nvidia-chatbot"
+| expand span.events
+| filter span.events[`span_event.name`] == "feature_flag.evaluation"
+| fieldsAdd flag_key   = span.events[`feature_flag.key`],
+            flag_value = span.events[`feature_flag.result.value`],
+            flag_reason = span.events[`feature_flag.result.reason`]
+| summarize evaluations = count(), by:{flag_key, flag_value, flag_reason}
+| sort evaluations desc
+```

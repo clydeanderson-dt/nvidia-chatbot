@@ -7,6 +7,7 @@ import os
 
 from devcycle_python_sdk import DevCycleLocalClient, DevCycleLocalOptions
 from openfeature import api
+from openfeature.contrib.hook.opentelemetry import TracingHook
 
 logger = logging.getLogger("chatbot.feature_flags")
 
@@ -30,8 +31,14 @@ def initialize_feature_flags() -> None:
 
     _devcycle_client = DevCycleLocalClient(sdk_key, DevCycleLocalOptions())
     api.set_provider(_devcycle_client.get_openfeature_provider())
+
+    # Emit a `feature_flag.evaluation` span event on the active span for every
+    # flag evaluation. Matches the OTel feature-flag semantic conventions and
+    # ties evaluations directly to the parent request/workflow span in Dynatrace.
+    api.add_hooks([TracingHook()])
+
     _provider_initialized = True
-    logger.info("DevCycle OpenFeature provider initialized")
+    logger.info("DevCycle OpenFeature provider initialized with OTel TracingHook")
 
 
 def get_openfeature_client():
