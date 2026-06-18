@@ -15,7 +15,7 @@ Async Python load generator that simulates chat traffic against the backend. Run
 
 ## Environment variables
 
-Configuration is read from environment variables first, then CLI flags, then built-in defaults.
+Configuration is read from environment variables first, then CLI flags, then built-in defaults. The load generator reads the **repo-root `.env`** via `load_dotenv()` (the same file used by the backend), regardless of the directory it is launched from.
 
 | Variable | CLI flag | Default | Description |
 |---|---|---|---|
@@ -23,8 +23,7 @@ Configuration is read from environment variables first, then CLI flags, then bui
 | `LOAD_GEN_CONCURRENCY` | `--concurrency` | `5` | Worker count (constant-concurrency mode) or max-concurrency cap (fixed-rate mode) |
 | `LOAD_GEN_RATE` | `--rate` | *(unset)* | Target req/s; if set, switches to fixed-rate mode |
 | `LOAD_GEN_PROVIDER` | `--provider` | `nim_api` | LLM provider sent to the backend (`nim_api` or `self_hosted`) |
-| `DYNATRACE_OTLP_ENDPOINT` | — | *(unset)* | `https://{environmentId}.live.dynatrace.com` — telemetry disabled if absent |
-| `DYNATRACE_API_TOKEN` | — | *(unset)* | Dynatrace API token with `openTelemetryTrace.ingest` scope |
+| `OTLP_ENDPOINT` | — | *(unset)* | Base URL of the OTLP/HTTP collector (e.g. `https://{environmentId}.live.dynatrace.com`). Telemetry disabled if absent. |
 
 ---
 
@@ -94,9 +93,8 @@ python load_gen.py --requests 20
 # Self-hosted NIM provider
 python load_gen.py --provider self_hosted
 
-# With Dynatrace telemetry
-DYNATRACE_OTLP_ENDPOINT=https://abc123.live.dynatrace.com \
-DYNATRACE_API_TOKEN=dt0a01.XXXX \
+# With Dynatrace telemetry (set OTLP_ENDPOINT in the root .env, or inline)
+OTLP_ENDPOINT=https://abc123.live.dynatrace.com \
 python load_gen.py --rate 5 --concurrency 10
 ```
 
@@ -132,7 +130,7 @@ The summary is formatted as a `rich` table when the package is available, and fa
 
 ## Telemetry
 
-When both `DYNATRACE_OTLP_ENDPOINT` and `DYNATRACE_API_TOKEN` are set, traces are exported to Dynatrace via OTLP/HTTP. If either variable is absent, a warning is printed and the generator continues without exporting.
+When `OTLP_ENDPOINT` is set, traces are exported to Dynatrace via OTLP/HTTP. If it is absent, a warning is printed and the generator continues without exporting.
 
 `HTTPXClientInstrumentor` auto-instruments all outbound HTTP calls. Each request also creates a manual `load_gen.request` span with the following attributes:
 

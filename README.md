@@ -5,7 +5,7 @@
 - Python 3.11+
 - Node.js 18+
 - An [NVIDIA NIM API key](https://build.nvidia.com/)
-- A Dynatrace SaaS environment and API token *(required for telemetry; optional to run the app)*
+- A Dynatrace SaaS environment with an OTLP ingest token *(required for telemetry; optional to run the app)*
 
 ---
 
@@ -30,7 +30,7 @@ The application instruments all components with observability telemetry, providi
 
 - **Traceloop SDK** auto-instruments FastAPI endpoints and LangChain chains, exporting traces and logs to Dynatrace via OTLP
 - Captures request/response spans, LLM invocation details, and Python log records with trace correlation
-- **Optional**: Backend starts without `DYNATRACE_OTLP_ENDPOINT` and `DYNATRACE_API_TOKEN` (telemetry skipped with a warning)
+- **Optional**: Backend starts without `OTLP_ENDPOINT` (telemetry skipped with a warning)
 
 ### React Frontend (Dynatrace RUM)
 
@@ -57,10 +57,10 @@ See [AGENTS.md](AGENTS.md) for detailed telemetry implementation and component R
 **Terminal 1 — backend:**
 
 ```bash
+cp .env.example .env   # in the repo root; set NVIDIA_API_KEY at minimum
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # set NVIDIA_API_KEY at minimum
 uvicorn main:app --reload
 # → http://localhost:8000
 ```
@@ -80,6 +80,6 @@ npm run dev
 
 | Symptom | Check |
 |---|---|
-| `NVIDIA_API_KEY is not set` error | Ensure `.env` exists in `backend/` and contains a valid key |
-| CORS errors in the browser | Verify `ALLOWED_ORIGINS` in `backend/.env` matches the exact origin (including port) used by the browser |
-| No traces/metrics/logs in Dynatrace | Confirm `DYNATRACE_OTLP_ENDPOINT` and `DYNATRACE_API_TOKEN` are set; check backend logs for the `telemetry export is disabled` warning; verify the token has `openTelemetryTrace.ingest`, `metrics.ingest`, and `logs.ingest` scopes |
+| `NVIDIA_API_KEY is not set` error | Ensure `.env` exists at the repo root and contains a valid key |
+| CORS errors in the browser | Verify `ALLOWED_ORIGINS` in `.env` matches the exact origin (including port) used by the browser |
+| No traces/metrics/logs in Dynatrace | Confirm `OTLP_ENDPOINT` is set (base URL, no trailing slash, no path); check backend logs for the `OTLP_ENDPOINT is not set` warning; verify the Dynatrace token used in the URL has `openTelemetryTrace.ingest`, `metrics.ingest`, and `logs.ingest` scopes |

@@ -19,18 +19,28 @@ FastAPI application that manages AI chat sessions via LangChain and the NVIDIA N
 
 ## Environment variables
 
-Create `backend/.env` (copy from `.env.example`):
+Configuration is read from a single `.env` file at the **repo root** (shared
+with the load generator and the frontend build). Copy the example, then fill
+in at least `NVIDIA_API_KEY`:
+
+```bash
+cp ../.env.example ../.env
+```
+
+The backend variables consumed from that file are:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NVIDIA_API_KEY` | Yes | — | NVIDIA NIM API key (`nvapi-…`). Required for the `nim_api` provider. |
 | `DEVCYCLE_SERVER_SDK_KEY` | No | — | DevCycle server SDK key (`dvc_server_...`). Enables OpenFeature provider initialization at app startup. |
 | `SELF_HOSTED_NIM_URL` | No | — | Base URL of a self-hosted NIM server (e.g. `http://localhost:8080`). Enables the `self_hosted` provider. |
-| `DYNATRACE_OTLP_ENDPOINT` | No | — | `https://{environmentId}.live.dynatrace.com` — traces and logs are skipped with a warning if absent. |
-| `DYNATRACE_API_TOKEN` | No | — | Dynatrace API token. Requires scopes: `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest`. |
+| `OTLP_ENDPOINT` | No | — | Base URL of the OTLP/HTTP collector (e.g. `https://{environmentId}.live.dynatrace.com`). Traces and logs are skipped with a warning if absent. |
 | `ALLOWED_ORIGINS` | No | `http://localhost:5173,http://localhost:3000` | Comma-separated CORS origins. |
 
-> `load_dotenv()` reads `.env` from the `backend/` directory. The file must exist there, not in the project root.
+> `backend/main.py` and `backend/services/llm.py` call `load_dotenv()` with an
+> explicit path to the repo-root `.env`, so they work regardless of the
+> current working directory. See `.env.example` at the repo root for the full
+> set of variables (including load-generator and frontend-build vars).
 
 ---
 
@@ -47,12 +57,9 @@ Create `backend/.env` (copy from `.env.example`):
 | `GET` | `/api/config` | Get current app configuration (system prompt, provider) |
 | `PATCH` | `/api/config` | Update app configuration |
 | `POST` | `/api/config/reset` | Reset app configuration to defaults |
-| `GET` | `/api/chaos` | Get current chaos configuration |
-| `PATCH` | `/api/chaos` | Update chaos configuration |
-| `POST` | `/api/chaos/reset` | Reset all chaos settings to defaults |
-| `GET` | `/api/chaos/presets` | List available chaos presets |
-| `POST` | `/api/chaos/preset/{name}` | Apply a named chaos preset |
-| `GET` | `/api/chaos/status` | Get chaos status (active flag + config) |
+| `GET` | `/api/chaos` | Get current chaos configuration (read-only; values served by DevCycle) |
+| `GET` | `/api/chaos/presets` | List available chaos preset / variation names |
+| `GET` | `/api/chaos/status` | Get chaos status `{active, config, preset, controlled_by: "devcycle"}` |
 
 ### `GET /api/health`
 
@@ -204,9 +211,9 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
-cp .env.example .env
-# Edit .env — at minimum set NVIDIA_API_KEY
+# Configure environment (the .env lives at the repo root, not in backend/)
+cp ../.env.example ../.env
+# Edit ../.env — at minimum set NVIDIA_API_KEY
 
 # Start the server with hot-reload
 uvicorn main:app --reload
@@ -239,8 +246,8 @@ The backend uses the [Traceloop SDK](https://www.traceloop.com/docs) to instrume
 - **Traceloop.init()** is called before the FastAPI app is constructed so that instrumentation wraps everything.
 - All LLM calls are annotated with `@workflow` / `@task` decorators.
 - A custom span processor normalises the `gen_ai.system` attribute from `"Langchain"` → `"nvidia"` for OpenTelemetry GenAI semantic convention compliance.
-- If `DYNATRACE_OTLP_ENDPOINT` or `DYNATRACE_API_TOKEN` are absent, the backend logs a warning and continues without exporting telemetry — no functionality is lost.
-- When both Dynatrace variables are present, Python log records are also bridged to Dynatrace via `opentelemetry-instrumentation-logging`.
+- If `OTLP_ENDPOINT` is absent, the backend logs a warning and continues without exporting telemetry — no functionality is lost.
+- When `OTLP_ENDPOINT` is set, Python log records are also bridged to Dynatrace via `opentelemetry-instrumentation-logging`.
 
 ---
 
