@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# deploy/setup.sh — one-shot VM setup for all three components
+# deploy/setup.sh — non-interactive VM setup for all three components.
 #
-# Run as a non-root user with sudo privileges:
+# Configuration source of truth: a `.env` file in the repo root. Copy
+# `.env.example` to `.env`, fill it in, then run:
+#
 #   bash deploy/setup.sh
 #
-# Prerequisites: Ubuntu 22.04 / 24.04, git, internet access.
-# The script is idempotent — safe to re-run after a partial failure.
+# Prerequisites: Ubuntu 22.04 / 24.04, git, internet access, sudo.
+# The script is idempotent — safe to re-run.
 
 set -euo pipefail
 
 INSTALL_DIR=/opt/chatbot
 FRONTEND_WEBROOT=/var/www/chatbot
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$REPO_DIR/.env"
+DEPLOYED_ENV_FILE="$INSTALL_DIR/.env"
 
 log()  { echo "[setup] $*"; }
 die()  { echo "[setup] ERROR: $*" >&2; exit 1; }
@@ -20,81 +24,71 @@ die()  { echo "[setup] ERROR: $*" >&2; exit 1; }
 # 0. Sanity checks
 # ---------------------------------------------------------------------------
 [[ $EUID -ne 0 ]] || die "Run as a normal user with sudo, not as root."
-command -v git  >/dev/null 2>&1 || die "git is not installed."
+command -v git >/dev/null 2>&1 || die "git is not installed."
 log "Repo root: $REPO_DIR"
 
 # ---------------------------------------------------------------------------
-# 0.5. Gather all configuration from user
+# 1. Load and validate configuration from $REPO_DIR/.env
 # ---------------------------------------------------------------------------
-echo ""
-echo "=========================================="
-echo "  Configuration Setup"
-echo "=========================================="
-echo ""
-
-# NVIDIA API Key (required)
-while true; do
-    read -p "Enter your NVIDIA API Key (nvapi-...): " nvidia_key
-    if [[ -n "$nvidia_key" ]]; then
-        break
-    fi
-    echo "NVIDIA_API_KEY is required."
-done
-
-# OTel collector endpoint (optional, shared between backend and load_gen)
-echo ""
-echo "OpenTelemetry export is optional but recommended for observability."
-read -p "Enter your OTel collector HTTP endpoint (e.g., http://localhost:4318) or press Enter to skip: " otlp_endpoint
-# Strip trailing slash
-otlp_endpoint=${otlp_endpoint%/}
-
-# Dynatrace RUM (optional, for frontend browser telemetry)
-echo ""
-echo "The frontend can send browser telemetry to Dynatrace Real User Monitoring."
-echo "Get your JS tag URL from:"
-echo "  Dynatrace > Web Applications > Your App > ... menu > Edit > Setup > Code snippet"
-echo "Example: https://js-cdn.dynatracelabs.com/jstag/abc123/456def/complete.js"
-read -p "Enter Dynatrace RUM JavaScript tag URL (or press Enter to skip): " rum_url
-
-# ALLOWED_ORIGINS (optional, with smart default based on VM hostname)
-echo ""
-vm_ip=$(hostname -I | awk '{print $1}')
-vm_hostname=$(hostname -f 2>/dev/null || hostname)
-default_origins="http://localhost:5173,http://localhost:3000,http://${vm_ip},http://${vm_hostname}"
-echo "Default CORS origins: $default_origins"
-read -p "Enter additional ALLOWED_ORIGINS to include (comma-separated, or press Enter to use defaults only): " additional_origins
-if [[ -n "$additional_origins" ]]; then
-    allowed_origins="${default_origins},${additional_origins}"
-else
-    allowed_origins="$default_origins"
+if [[ ! -f "$ENV_FILE" ]]; then
+    die ".env not found at $ENV_FILE
+        Copy .env.example to .env and fill in the values:
+            cp $REPO_DIR/.env.example $ENV_FILE
+            \$EDITOR $ENV_FILE"
 fi
 
-# Self-hosted NIM URL (optional)
-echo ""
-read -p "Enter self-hosted NIM base URL (or press Enter to skip): " nim_url
+log "Loading configuration from $ENV_FILE"
+# `set -a` auto-exports every var defined while it's on, so child processes
+# (npm, sudo -E, etc.) inherit them.
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
 
-# Load generator concurrency (optional)
-echo ""
-read -p "Enter load generator concurrency level [10]: " load_concurrency
-load_concurrency=${load_concurrency:-10}
+# Mandatory vars.
+[[ -n "${NVIDIA_API_KEY:-}" ]] || die "NVIDIA_API_KEY is required in $ENV_FILE"
 
-# Load generator provider (optional)
-read -p "Enter load generator LLM provider (nim_api or self_hosted) [nim_api]: " load_provider
-load_provider=${load_provider:-nim_api}
+# Optional vars — assign defaults so the rest of the script can rely on them.
+: "${DEVCYCLE_SERVER_SDK_KEY:=}"
+: "${OTLP_ENDPOINT:=}"
+: "${ALLOWED_ORIGINS:=}"
+: "${SELF_HOSTED_NIM_URL:=}"
+: "${VITE_DYNATRACE_RUM_URL:=}"
+: "${LOAD_GEN_URL:=http://localhost:8000}"
+: "${LOAD_GEN_CONCURRENCY:=10}"
+: "${LOAD_GEN_PROVIDER:=nim_api}"
+: "${SERVER_NAME:=}"
 
-# Server name for nginx
-echo ""
-read -p "Enter server name for nginx (VM IP or hostname) [${vm_ip}]: " server_name
-server_name=${server_name:-$vm_ip}
-# Strip protocol if user included it (nginx server_name doesn't use protocol)
-server_name=${server_name#http://}
-server_name=${server_name#https://}
+# Compute defaults that depend on the VM.
+vm_ip=$(hostname -I | awk '{print $1}')
+vm_hostname=$(hostname -f 2>/dev/null || hostname)
 
-echo ""
-log "Configuration collected. Proceeding with installation..."
+# nginx server_name: use the value from .env if set, otherwise fall back to
+# the VM's primary IP. Strip protocol just in case the user pasted a URL.
+if [[ -z "$SERVER_NAME" ]]; then
+    SERVER_NAME="$vm_ip"
+fi
+SERVER_NAME=${SERVER_NAME#http://}
+SERVER_NAME=${SERVER_NAME#https://}
+
+# ALLOWED_ORIGINS: always include the VM-derived defaults; append any
+# operator-supplied origins from .env.
+default_origins="http://localhost:5173,http://localhost:3000,http://${vm_ip},http://${vm_hostname}"
+if [[ -n "$ALLOWED_ORIGINS" ]]; then
+    ALLOWED_ORIGINS="${default_origins},${ALLOWED_ORIGINS}"
+else
+    ALLOWED_ORIGINS="$default_origins"
+fi
+
+# Warnings for optional-but-recommended values.
+[[ -n "$DEVCYCLE_SERVER_SDK_KEY" ]] || log "WARNING: DEVCYCLE_SERVER_SDK_KEY not set — chaos engineering will be disabled (all variables fall back to defaults)."
+[[ -n "$OTLP_ENDPOINT" ]]            || log "WARNING: OTLP_ENDPOINT not set — telemetry export disabled."
+[[ -n "$VITE_DYNATRACE_RUM_URL" ]]   || log "WARNING: VITE_DYNATRACE_RUM_URL not set — frontend RUM disabled."
+
+log "Configuration loaded. Server name: $SERVER_NAME"
 
 # ---------------------------------------------------------------------------
-# 1. System packages
+# 2. System packages
 # ---------------------------------------------------------------------------
 log "Installing system packages..."
 sudo apt-get update -y
@@ -109,16 +103,15 @@ fi
 log "Node $(node --version), npm $(npm --version)"
 
 # ---------------------------------------------------------------------------
-# 1.5. journald — cap disk usage and stop forwarding to syslog
+# 3. journald — cap disk usage and stop forwarding to syslog
 # ---------------------------------------------------------------------------
 log "Configuring systemd-journald to prevent disk fill..."
 JOURNALD_CONF=/etc/systemd/journald.conf
 
-# Only add settings if they are not already present
-sudo sed -i '/^ForwardToSyslog=/d' "$JOURNALD_CONF"
-sudo sed -i '/^SystemMaxUse=/d'    "$JOURNALD_CONF"
-sudo sed -i '/^SystemMaxFileSize=/d' "$JOURNALD_CONF"
-sudo sed -i '/^MaxRetentionSec=/d' "$JOURNALD_CONF"
+sudo sed -i '/^ForwardToSyslog=/d'    "$JOURNALD_CONF"
+sudo sed -i '/^SystemMaxUse=/d'       "$JOURNALD_CONF"
+sudo sed -i '/^SystemMaxFileSize=/d'  "$JOURNALD_CONF"
+sudo sed -i '/^MaxRetentionSec=/d'    "$JOURNALD_CONF"
 
 sudo tee -a "$JOURNALD_CONF" >/dev/null <<'EOF'
 
@@ -133,9 +126,6 @@ sudo systemctl restart systemd-journald
 log "journald configured: ForwardToSyslog=no, SystemMaxUse=500M, MaxRetentionSec=7day"
 
 # Drop chatbot and load_gen messages from /var/log/syslog via rsyslog.
-# The OTel log pipeline (BatchLogRecordProcessor → Dynatrace) is independent
-# of syslog and continues to work. Logs remain accessible in the journal
-# (journalctl -u chatbot / -u load_gen) subject to the caps above.
 RSYSLOG_DROP=/etc/rsyslog.d/10-chatbot-drop.conf
 sudo tee "$RSYSLOG_DROP" >/dev/null <<'EOF'
 # Drop chatbot and load_gen log lines from syslog to prevent disk fill.
@@ -147,21 +137,53 @@ sudo systemctl restart rsyslog
 log "rsyslog configured: chatbot and load_gen messages will not be written to /var/log/syslog"
 
 # ---------------------------------------------------------------------------
-# 2. Directory structure
+# 4. Directory structure
 # ---------------------------------------------------------------------------
 log "Creating directory structure..."
 sudo mkdir -p "$INSTALL_DIR" "$FRONTEND_WEBROOT"
 sudo chown "$USER:$USER" "$INSTALL_DIR"
 
 # ---------------------------------------------------------------------------
-# 3. Copy application code
+# 5. Copy application code
 # ---------------------------------------------------------------------------
 log "Syncing application code to $INSTALL_DIR..."
 rsync -a --exclude='.venv' --exclude='__pycache__' --exclude='node_modules' --exclude='dist' \
       "$REPO_DIR/" "$INSTALL_DIR/"
 
 # ---------------------------------------------------------------------------
-# 4. Backend — Python virtualenv + dependencies
+# 6. Install unified .env into deployed location
+# ---------------------------------------------------------------------------
+# Both systemd units (chatbot.service, load_gen.service) read this single
+# file via EnvironmentFile=. systemd silently ignores vars the process
+# doesn't consume, so the backend ignores LOAD_GEN_* and vice versa.
+#
+# We rewrite the on-disk file with the *resolved* values from this run
+# (e.g. ALLOWED_ORIGINS with the VM IP appended) so what the services see
+# matches what we just logged.
+log "Writing unified env file to $DEPLOYED_ENV_FILE..."
+sudo tee "$DEPLOYED_ENV_FILE" >/dev/null <<EOF
+# Generated by deploy/setup.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# Source of truth: $ENV_FILE in the repo. Re-run setup.sh to refresh.
+
+NVIDIA_API_KEY=$NVIDIA_API_KEY
+DEVCYCLE_SERVER_SDK_KEY=$DEVCYCLE_SERVER_SDK_KEY
+OTLP_ENDPOINT=$OTLP_ENDPOINT
+ALLOWED_ORIGINS=$ALLOWED_ORIGINS
+SELF_HOSTED_NIM_URL=$SELF_HOSTED_NIM_URL
+
+LOAD_GEN_URL=$LOAD_GEN_URL
+LOAD_GEN_CONCURRENCY=$LOAD_GEN_CONCURRENCY
+LOAD_GEN_PROVIDER=$LOAD_GEN_PROVIDER
+EOF
+# LOAD_GEN_RATE is optional and unset by default; only write it if provided.
+if [[ -n "${LOAD_GEN_RATE:-}" ]]; then
+    echo "LOAD_GEN_RATE=$LOAD_GEN_RATE" | sudo tee -a "$DEPLOYED_ENV_FILE" >/dev/null
+fi
+sudo chmod 600 "$DEPLOYED_ENV_FILE"
+sudo chown www-data:www-data "$DEPLOYED_ENV_FILE"
+
+# ---------------------------------------------------------------------------
+# 7. Backend — Python virtualenv + dependencies
 # ---------------------------------------------------------------------------
 log "Setting up backend virtualenv..."
 python3 -m venv "$INSTALL_DIR/venv"
@@ -169,37 +191,20 @@ log "Installing backend dependencies..."
 "$INSTALL_DIR/venv/bin/pip" install --upgrade pip >/dev/null
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/backend/requirements.txt"
 
-# Create backend .env with values from user input
-log "Creating backend .env with provided configuration..."
-sudo tee "$INSTALL_DIR/backend/.env" >/dev/null <<EOF
-NVIDIA_API_KEY=$nvidia_key
-OTLP_ENDPOINT=$otlp_endpoint
-ALLOWED_ORIGINS=$allowed_origins
-SELF_HOSTED_NIM_URL=$nim_url
-EOF
-sudo chmod 600 "$INSTALL_DIR/backend/.env"
-sudo chown www-data:www-data "$INSTALL_DIR/backend/.env"
-
 # ---------------------------------------------------------------------------
-# 5. Frontend — build static assets
+# 8. Frontend — build static assets
 # ---------------------------------------------------------------------------
 log "Building frontend..."
-# Ensure frontend directory is owned by the current user (needed for npm build)
+# npm needs to write into node_modules and dist; current user owns these.
 sudo chown -R "$USER:$USER" "$INSTALL_DIR/frontend"
 pushd "$INSTALL_DIR/frontend" >/dev/null
 log "Installing frontend dependencies..."
 npm ci
 
-# Create .env.local with RUM URL from earlier configuration
-if [[ -n "$rum_url" ]]; then
-    echo "VITE_DYNATRACE_RUM_URL=$rum_url" > .env.local
-    log "Dynatrace RUM configured."
-else
-    echo "VITE_DYNATRACE_RUM_URL=" > .env.local
-fi
-chmod 600 .env.local
-
-log "Building frontend static assets..."
+# Vite auto-picks up VITE_* env vars from the process environment. Because
+# we `set -a` + `source`d .env at the top, VITE_DYNATRACE_RUM_URL is already
+# exported here — no .env.local needed.
+log "Building frontend static assets (VITE_DYNATRACE_RUM_URL=${VITE_DYNATRACE_RUM_URL:+set})..."
 npm run build
 popd >/dev/null
 
@@ -208,16 +213,14 @@ sudo cp -r "$INSTALL_DIR/frontend/dist/." "$FRONTEND_WEBROOT/"
 sudo chown -R www-data:www-data "$FRONTEND_WEBROOT"
 
 # ---------------------------------------------------------------------------
-# 6. nginx
+# 9. nginx
 # ---------------------------------------------------------------------------
 log "Installing nginx config..."
 sudo cp "$INSTALL_DIR/deploy/nginx.conf" /etc/nginx/sites-available/chatbot
 
-# Update server_name in nginx config (using | as delimiter to handle special chars)
-log "Configuring nginx server_name to $server_name..."
-sudo sed -i "s|^\s*server_name\s\+_;|    server_name $server_name;|" /etc/nginx/sites-available/chatbot
+log "Configuring nginx server_name to $SERVER_NAME..."
+sudo sed -i "s|^\s*server_name\s\+_;|    server_name $SERVER_NAME;|" /etc/nginx/sites-available/chatbot
 
-# Enable site, remove default to avoid catch-all conflicts.
 sudo ln -sf /etc/nginx/sites-available/chatbot /etc/nginx/sites-enabled/chatbot
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
@@ -225,40 +228,30 @@ sudo systemctl enable --now nginx
 sudo systemctl reload nginx
 
 # ---------------------------------------------------------------------------
-# 7. Backend systemd service
+# 10. Backend systemd service
 # ---------------------------------------------------------------------------
 log "Installing chatbot systemd service..."
 sudo cp "$INSTALL_DIR/deploy/chatbot.service" /etc/systemd/system/chatbot.service
 sudo systemctl daemon-reload
 sudo systemctl enable chatbot
-sudo systemctl start chatbot
+sudo systemctl restart chatbot
 log "chatbot service started."
 
 # ---------------------------------------------------------------------------
-# 8. Load generator — install dependencies into shared venv
+# 11. Load generator — install dependencies into the shared venv
 # ---------------------------------------------------------------------------
 log "Installing load_gen dependencies..."
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/load_gen/requirements.txt" >/dev/null
-
-# Create load_gen .env with values from user input (reusing OTel vars)
-log "Creating load_gen .env with provided configuration..."
-sudo tee "$INSTALL_DIR/load_gen/.env" >/dev/null <<EOF
-OTLP_ENDPOINT=$otlp_endpoint
-LOAD_GEN_CONCURRENCY=$load_concurrency
-LOAD_GEN_PROVIDER=$load_provider
-EOF
-sudo chmod 600 "$INSTALL_DIR/load_gen/.env"
-sudo chown www-data:www-data "$INSTALL_DIR/load_gen/.env"
 
 log "Installing load_gen systemd service..."
 sudo cp "$INSTALL_DIR/deploy/load_gen.service" /etc/systemd/system/load_gen.service
 sudo systemctl daemon-reload
 sudo systemctl enable load_gen
-sudo systemctl start load_gen
+sudo systemctl restart load_gen
 log "load_gen service started."
 
 # ---------------------------------------------------------------------------
-# 9. Summary
+# 12. Summary
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
@@ -266,27 +259,23 @@ echo "  Setup complete!"
 echo "=========================================="
 echo ""
 echo "  Services started:"
-echo "    ✓ nginx (serving frontend on http://$server_name)"
+echo "    ✓ nginx (serving frontend on http://$SERVER_NAME)"
 echo "    ✓ chatbot backend (FastAPI on port 8000)"
 echo "    ✓ load_gen (generating synthetic traffic)"
 echo ""
 echo "  Verify:"
-echo "    curl http://localhost/api/health   # should return {\"status\":\"ok\"}"
-echo "    curl http://$server_name/          # should serve the frontend"
+echo "    curl http://localhost/api/health       # → {\"status\":\"ok\"}"
+echo "    curl http://$SERVER_NAME/              # → React app"
 echo ""
 echo "  Service logs:"
 echo "    journalctl -u chatbot  -f"
 echo "    journalctl -u load_gen -f"
 echo "    journalctl -u nginx    -f"
 echo ""
-echo "  Configuration files created:"
-echo "    $INSTALL_DIR/backend/.env"
-echo "    $INSTALL_DIR/load_gen/.env"
-echo "    $INSTALL_DIR/frontend/.env.local"
-echo "    /etc/nginx/sites-available/chatbot"
+echo "  Configuration:"
+echo "    Source of truth:   $ENV_FILE"
+echo "    Deployed copy:     $DEPLOYED_ENV_FILE (chmod 600, www-data)"
+echo "    nginx site:        /etc/nginx/sites-available/chatbot"
 echo ""
-echo "  To rebuild the frontend with new Dynatrace RUM settings:"
-echo "    1. Edit $INSTALL_DIR/frontend/.env.local"
-echo "    2. cd $INSTALL_DIR/frontend && npm run build"
-echo "    3. sudo cp -r dist/. $FRONTEND_WEBROOT/"
+echo "  To change config: edit $ENV_FILE then re-run this script."
 echo ""

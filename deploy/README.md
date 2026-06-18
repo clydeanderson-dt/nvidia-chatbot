@@ -27,23 +27,32 @@ python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env               # then edit .env with your credentials
+# Configuration lives in a single `.env` at the repo root, shared by the
+# backend, the load generator, and the frontend build:
+cp ../.env.example ../.env         # then edit ../.env with your credentials
+
 uvicorn main:app --reload
 # → API available at http://localhost:8000
 # → Health check: curl http://localhost:8000/api/health
 ```
 
-**Backend `.env` variables:**
+**Root `.env` variables** (see `.env.example` for full documentation):
 
-| Variable | Required | Description |
-|---|---|---|
-| `NVIDIA_API_KEY` | **Yes** | Your `nvapi-…` key |
-| `DYNATRACE_OTLP_ENDPOINT` | No | e.g. `https://abc12345.live.dynatrace.com` |
-| `DYNATRACE_API_TOKEN` | No | Dynatrace API token — required if endpoint is set |
-| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins (e.g., `http://localhost:5173,http://localhost:3000`). Include protocol, no trailing slashes. |
-| `SELF_HOSTED_NIM_URL` | No | Base URL for a self-hosted NIM instance |
+| Variable | Required | Used by | Description |
+|---|---|---|---|
+| `NVIDIA_API_KEY` | **Yes** | backend | Your `nvapi-…` key |
+| `DEVCYCLE_SERVER_SDK_KEY` | No | backend | DevCycle server SDK key (chaos engineering). Without it, chaos is disabled. |
+| `OTLP_ENDPOINT` | No | backend, load_gen | OTel collector HTTP/protobuf endpoint (e.g. `http://localhost:4318`) |
+| `ALLOWED_ORIGINS` | No | backend | Extra CORS origins (comma-separated, with protocol, no trailing slashes) |
+| `SELF_HOSTED_NIM_URL` | No | backend | Base URL for a self-hosted NIM instance |
+| `VITE_DYNATRACE_RUM_URL` | No | frontend build | Dynatrace RUM JS tag URL |
+| `LOAD_GEN_URL` | No | load_gen | Backend base URL (default `http://localhost:8000`) |
+| `LOAD_GEN_CONCURRENCY` | No | load_gen | Worker count (default `10`) |
+| `LOAD_GEN_PROVIDER` | No | load_gen | `nim_api` or `self_hosted` (default `nim_api`) |
+| `LOAD_GEN_RATE` | No | load_gen | Target req/s; unset = constant-concurrency mode |
+| `SERVER_NAME` | No | setup.sh | nginx server_name on the VM (default: VM IP) |
 
-> Dynatrace variables are optional for local development. The server starts with a warning if they are absent.
+> Optional Dynatrace/OTel variables can be left blank — the services start with a warning.
 
 ---
 
@@ -108,20 +117,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env               # then edit .env
+# The load generator reads the same root `.env` as the backend — no separate
+# file needed. Make sure `../.env` exists (see Backend section above).
 python load_gen.py
 ```
-
-**Load generator `.env` variables:**
-
-| Variable | Default | Description |
-|---|---|---|
-| `LOAD_GEN_URL` | `http://localhost:8000` | Backend base URL |
-| `LOAD_GEN_CONCURRENCY` | `5` | Number of parallel async workers |
-| `LOAD_GEN_RATE` | unset | Target req/s (unset = constant-concurrency mode) |
-| `LOAD_GEN_PROVIDER` | `nim_api` | `nim_api` or `self_hosted` |
-| `DYNATRACE_OTLP_ENDPOINT` | — | Optional — telemetry export |
-| `DYNATRACE_API_TOKEN` | — | Optional — telemetry export |
 
 ---
 
@@ -171,37 +170,43 @@ cd ~/chatbot-repo
 
 ---
 
-### Step 2 — Run the setup script
+### Step 2 — Configure and run the setup script
+
+Setup is driven by a single `.env` file at the repo root (the same file used
+for local dev). Copy the example, fill it in, and run setup:
 
 ```bash
+cp .env.example .env
+$EDITOR .env              # at minimum, set NVIDIA_API_KEY
 bash deploy/setup.sh
 ```
 
-The script is **fully interactive** and will prompt you for all necessary configuration upfront. You'll be asked for:
+**Mandatory:** `NVIDIA_API_KEY`.
 
-1. **NVIDIA API Key** (required) — your `nvapi-...` key
-2. **Dynatrace OTLP Endpoint** (optional) — e.g., `https://abc12345.live.dynatrace.com`
-3. **Dynatrace API Token** (optional) — required if endpoint is provided
-4. **Dynatrace RUM JavaScript tag URL** (optional) — for frontend browser monitoring
-5. **ALLOWED_ORIGINS** (optional) — comma-separated list of allowed CORS origins (e.g., `http://192.168.1.100,https://chatbot.example.com`). Defaults to localhost + your VM IP/hostname. **Note:** Include protocol (`http://` or `https://`) but no trailing slashes.
-6. **Self-hosted NIM URL** (optional) — only if using a self-hosted NIM instance
-7. **Load generator concurrency** (optional) — defaults to 10
-8. **Load generator provider** (optional) — `nim_api` or `self_hosted`, defaults to `nim_api`
-9. **nginx server_name** (optional) — VM IP or hostname (without protocol). Defaults to your VM IP.
+**Recommended:** `DEVCYCLE_SERVER_SDK_KEY` (chaos engineering), `OTLP_ENDPOINT`
+(telemetry), `VITE_DYNATRACE_RUM_URL` (frontend RUM).
+
+See `.env.example` for full documentation of every variable, including
+optional load-generator tuning (`LOAD_GEN_CONCURRENCY`, `LOAD_GEN_RATE`, …)
+and `SERVER_NAME` for nginx.
 
 The script will then:
 
 1. Install system packages (`python3`, `python3-venv`, `nginx`) and Node 20
 2. Copy the application code to `/opt/chatbot/`
-3. Create Python virtualenvs and install all Python dependencies
-4. Create all `.env` files with the values you provided
-5. Build the React frontend (`npm ci && npm run build`)
+3. Create a Python virtualenv and install all Python dependencies
+4. Copy your root `.env` to `/opt/chatbot/.env` (chmod 600, owned by `www-data`)
+   — both systemd units read it via `EnvironmentFile=`
+5. Build the React frontend (`npm ci && npm run build`), with `VITE_*` vars
+   exported into the build environment from the same `.env`
 6. Copy the frontend build to `/var/www/chatbot/` and configure nginx
 7. Install, enable, and **start** the `chatbot` and `load_gen` systemd services
 
-The script is **idempotent** — safe to re-run if it fails partway through.
+The script is **idempotent** — safe to re-run after editing `.env`. Re-running
+will rewrite `/opt/chatbot/.env` with the current values and restart both
+services.
 
-> **After completion, all services are running and the application is ready to use** — no manual configuration needed!
+> **After completion, all services are running and the application is ready to use.**
 
 ---
 
@@ -227,16 +232,20 @@ journalctl -u load_gen -f
 
 ### Configuration Files
 
-If you need to modify the configuration later, the following files were created:
+The source of truth is a single `.env` at the repo root. `setup.sh` copies it
+to the deployed location:
 
-- **Backend:** `/opt/chatbot/backend/.env`
-- **Frontend:** `/opt/chatbot/frontend/.env.local`
-- **Load generator:** `/opt/chatbot/load_gen/.env`
+- **Unified env (deployed):** `/opt/chatbot/.env` — read by both systemd units via `EnvironmentFile=`
 - **nginx:** `/etc/nginx/sites-available/chatbot`
 
-After editing:
-- Backend/load_gen: `sudo systemctl restart chatbot` or `sudo systemctl restart load_gen`
-- Frontend: Rebuild with `cd /opt/chatbot/frontend && npm run build && sudo cp -r dist/. /var/www/chatbot/`
+To change configuration after deploy: edit `~/chatbot-repo/.env` (or
+`/opt/chatbot/.env` directly for a one-off), then either re-run
+`bash deploy/setup.sh` (recommended — also rebuilds the frontend if
+`VITE_*` vars changed) or manually:
+
+- Backend / load_gen: `sudo systemctl restart chatbot load_gen`
+- Frontend (after changing `VITE_DYNATRACE_RUM_URL`): rebuild with
+  `cd /opt/chatbot/frontend && VITE_DYNATRACE_RUM_URL=… npm run build && sudo cp -r dist/. /var/www/chatbot/`
 - nginx: `sudo nginx -t && sudo systemctl reload nginx`
 
 ---
@@ -255,8 +264,7 @@ sudo systemctl restart load_gen
 
 # Update after a code change
 cd ~/chatbot-repo && git pull
-bash deploy/setup.sh     # Will prompt for config again; press Enter to keep existing values
-sudo systemctl restart chatbot load_gen
+bash deploy/setup.sh     # reads .env, rewrites /opt/chatbot/.env, restarts services
 
 # Quick update without re-running full setup
 cd ~/chatbot-repo && git pull
@@ -270,18 +278,16 @@ sudo systemctl restart chatbot load_gen
 
 ```
 /opt/chatbot/
+├── .env                ← unified config (auto-generated from repo .env, chmod 600, www-data)
 ├── backend/            FastAPI application
-│   └── .env            ← backend credentials (auto-generated, chmod 600)
 ├── frontend/           React source (used only for builds)
-│   └── .env.local      ← Dynatrace RUM URL (auto-generated, chmod 600)
 ├── load_gen/           Load generator
-│   └── .env            ← load gen config (auto-generated, reuses Dynatrace vars, chmod 600)
 └── venv/               Shared Python venv for backend and load_gen
 
 /var/www/chatbot/       Compiled React static files served by nginx
-/etc/nginx/sites-available/chatbot  ← nginx config (server_name auto-configured)
-/etc/systemd/system/chatbot.service
-/etc/systemd/system/load_gen.service
+/etc/nginx/sites-available/chatbot  ← nginx config (server_name from SERVER_NAME)
+/etc/systemd/system/chatbot.service     ← EnvironmentFile=/opt/chatbot/.env
+/etc/systemd/system/load_gen.service    ← EnvironmentFile=/opt/chatbot/.env
 ```
 
 ---

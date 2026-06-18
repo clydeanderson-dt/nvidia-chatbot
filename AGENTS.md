@@ -34,17 +34,31 @@ A full-stack AI chatbot that uses the **NVIDIA NIM API** (via LangChain) to serv
 
 ---
 
-## Environment Variables (`.env` in `backend/`)
+## Environment Variables (unified `.env` at repo root)
 
-| Variable | Required | Description |
-|---|---|---|
-| `NVIDIA_API_KEY` | Yes | NVIDIA NIM API key (`nvapi-...`) |
-| `DYNATRACE_OTLP_ENDPOINT` | No* | `https://{environmentId}.live.dynatrace.com` |
-| `DYNATRACE_API_TOKEN` | No* | Dynatrace token with `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest` scopes |
-| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins (default: `http://localhost:5173,http://localhost:3000`) |
-| `SELF_HOSTED_NIM_URL` | No | Base URL for a self-hosted NIM instance (enables `self_hosted` provider) |
+A single `.env` at the repo root is the source of truth for the backend, the
+load generator, and the frontend build. See `.env.example` for full
+documentation; summary below.
 
-*Traceloop init and telemetry export are skipped with a warning if Dynatrace vars are absent. The server starts without them.
+| Variable | Required | Used by | Description |
+|---|---|---|---|
+| `NVIDIA_API_KEY` | Yes | backend | NVIDIA NIM API key (`nvapi-...`) |
+| `DEVCYCLE_SERVER_SDK_KEY` | No | backend | DevCycle server SDK key. If unset, chaos engineering is disabled (all chaos vars fall back to defaults). |
+| `OTLP_ENDPOINT` | No* | backend, load_gen | OTel collector HTTP/protobuf endpoint (e.g. `http://localhost:4318`) |
+| `ALLOWED_ORIGINS` | No | backend | Extra CORS origins (default: localhost + VM IP/hostname appended by `setup.sh`) |
+| `SELF_HOSTED_NIM_URL` | No | backend | Base URL for a self-hosted NIM instance |
+| `VITE_DYNATRACE_RUM_URL` | No | frontend build | Dynatrace RUM JS tag URL, baked into the React build |
+| `LOAD_GEN_URL` | No | load_gen | Backend base URL (default `http://localhost:8000`) |
+| `LOAD_GEN_CONCURRENCY` | No | load_gen | Worker count (default `10`) |
+| `LOAD_GEN_PROVIDER` | No | load_gen | `nim_api` or `self_hosted` |
+| `LOAD_GEN_RATE` | No | load_gen | Target req/s; unset = constant-concurrency mode |
+| `SERVER_NAME` | No | setup.sh | nginx `server_name` on the VM (default: VM IP) |
+
+*Traceloop / OTel export is skipped with a warning if `OTLP_ENDPOINT` is absent. The services start without it.
+
+On the VM, `deploy/setup.sh` copies the root `.env` to `/opt/chatbot/.env`,
+which both systemd units read via `EnvironmentFile=`. systemd silently ignores
+vars a given process doesn't consume.
 
 ---
 
@@ -193,11 +207,13 @@ lib/
 ## Running Locally
 
 ```bash
+# One-time: create the unified .env at the repo root
+cp .env.example .env   # then fill in NVIDIA_API_KEY (everything else optional)
+
 # Backend (terminal 1)
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then fill in NVIDIA_API_KEY (Dynatrace vars optional)
 uvicorn main:app --reload
 # → http://localhost:8000
 
@@ -213,11 +229,10 @@ cp dynatrace.config.yaml.example dynatrace.config.yaml  # fill in credentials
 flutter pub get
 flutter run --dart-define=BASE_URL=http://localhost:8000
 
-# Load generator (terminal 4, optional)
+# Load generator (terminal 4, optional) — reads the same root .env
 cd load_gen
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then edit if needed
 python load_gen.py
 ```
 
@@ -225,8 +240,7 @@ python load_gen.py
 
 ## Key Conventions
 
-- All backend modules use `python-dotenv` (`load_dotenv()`) — `.env` must be in `backend/`.
-- `load_gen/load_gen.py` also calls `load_dotenv()` — `.env` must be in `load_gen/`.
+- Backend modules and `load_gen/load_gen.py` use `python-dotenv` with an **explicit path** to the repo-root `.env` (via `Path(__file__).resolve().parents[N]`), so they work regardless of CWD. On the VM, systemd injects the same vars via `EnvironmentFile=/opt/chatbot/.env`, making `load_dotenv()` a no-op there.
 - Frontend CSS uses **CSS Modules** (`.module.css`); no global CSS framework.
 - The backend registers three routers: `routers/chat.py` at `/api`, `routers/chaos.py` at `/api/chaos`, and `routers/config.py` at `/api/config`.
 - Traceloop SDK is initialised **before** FastAPI is imported in `main.py` so instrumentation wraps everything (skipped gracefully if Dynatrace vars are absent).

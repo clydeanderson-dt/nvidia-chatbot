@@ -9,6 +9,7 @@ import json as _json
 import logging
 import os
 import time
+from pathlib import Path
 
 from opentelemetry import trace as _otel_trace
 
@@ -23,7 +24,8 @@ from traceloop.sdk.decorators import task, workflow
 
 from services import chaos
 
-load_dotenv()
+# Repo-root .env — see backend/main.py for the rationale.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 logger = logging.getLogger("chatbot.llm")
 

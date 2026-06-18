@@ -1,12 +1,15 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load env vars before Traceloop initialisation so the OTLP endpoint and
-# API token are available immediately.
-load_dotenv()
+# Load env vars from the repo-root `.env` before Traceloop initialisation so
+# the OTLP endpoint and API token are available immediately. Using an explicit
+# path keeps local dev (run from anywhere) and the VM deploy (systemd injects
+# the same vars via EnvironmentFile=) symmetrical.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from traceloop.sdk import Traceloop  # noqa: E402
 

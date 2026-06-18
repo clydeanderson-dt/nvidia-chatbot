@@ -8,8 +8,8 @@
 #
 # Logs: journalctl -u load_gen -f
 #
-# Create /opt/chatbot/load_gen/.env before starting. Required vars:
-#   LOAD_GEN_URL, LOAD_GEN_CONCURRENCY, DYNATRACE_OTLP_ENDPOINT, DYNATRACE_API_TOKEN
+# Reads /opt/chatbot/.env (shared with the chatbot service).
+# systemd silently ignores env vars this process doesn't consume.
 
 [Unit]
 Description=AI Chatbot Load Generator
@@ -22,7 +22,7 @@ Type=simple
 # Change User to the OS user that owns /opt/chatbot.
 User=www-data
 WorkingDirectory=/opt/chatbot/load_gen
-EnvironmentFile=/opt/chatbot/load_gen/.env
+EnvironmentFile=/opt/chatbot/.env
 ExecStart=/opt/chatbot/venv/bin/python load_gen.py
 Restart=on-failure
 RestartSec=10

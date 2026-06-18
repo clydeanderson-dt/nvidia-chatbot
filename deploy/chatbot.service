@@ -17,7 +17,7 @@ Type=simple
 # Change User to the OS user that owns /opt/chatbot.
 User=www-data
 WorkingDirectory=/opt/chatbot/backend
-EnvironmentFile=/opt/chatbot/backend/.env
+EnvironmentFile=/opt/chatbot/.env
 ExecStart=/opt/chatbot/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
 Restart=on-failure
 RestartSec=5

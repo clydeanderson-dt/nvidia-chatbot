@@ -23,11 +23,15 @@ import statistics
 import sys
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
 from dotenv import load_dotenv
-load_dotenv()
+# Repo-root .env — shared with the backend so OTLP_ENDPOINT etc. are defined
+# in a single place. On the VM, systemd injects the same vars via
+# EnvironmentFile=, making this load_dotenv() a no-op there.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 import httpx
 from opentelemetry import trace
