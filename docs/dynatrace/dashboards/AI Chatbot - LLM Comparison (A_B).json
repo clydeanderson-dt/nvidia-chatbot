@@ -520,17 +520,17 @@
       "visualization": "categoricalBarChart",
       "visualizationSettings": {}
     },
-    "27": {
-      "content": "## 🚩 LLM flag rollout provenance\nResolved values for `llm-model-chat` and `llm-model-suggestions` over time, sourced from `feature_flag.evaluation` span events. Use this to confirm DevCycle audience rollouts are routing traffic the way you expect — should match the request-rate trend chart above.",
+    "29": {
+      "content": "## 🥧 Model traffic distribution\nShare of requests per `llm.model`, split by call type. Quickly see which model is carrying the bulk of traffic for each path.",
       "type": "markdown"
     },
-    "28": {
+    "30": {
       "davis": {
         "davisVisualization": {
           "isAvailable": true
         }
       },
-      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = toString(span.events[`feature_flag.key`]), flag_value = toString(span.events[`feature_flag.result.value`])\n| filter in(flag_key, {\"llm-model-chat\",\"llm-model-suggestions\"})\n| makeTimeseries evaluations = count(), by:{flag_key, flag_value}",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"chat_response.workflow\"\n| filter in(`llm.model`, array($Model))\n| summarize requests = count(), by:{model = `llm.model`}\n| sort requests desc",
       "querySettings": {
         "defaultSamplingRatio": 10,
         "defaultScanLimitGbytes": 500,
@@ -538,9 +538,28 @@
         "maxResultMegaBytes": 1,
         "maxResultRecords": 1000
       },
-      "title": "Resolved model values over time (per flag)",
+      "title": "Chat — model distribution",
       "type": "data",
-      "visualization": "areaChart",
+      "visualization": "pieChart",
+      "visualizationSettings": {}
+    },
+    "31": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"})\n| filter in(`llm.model`, array($Model))\n| summarize requests = count(), by:{model = `llm.model`}\n| sort requests desc",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Suggestions — model distribution",
+      "type": "data",
+      "visualization": "pieChart",
       "visualizationSettings": {}
     }
   },
@@ -683,16 +702,22 @@
       "w": 12,
       "h": 8
     },
-    "27": {
+    "29": {
       "x": 0,
       "y": 74,
       "w": 24,
       "h": 2
     },
-    "28": {
+    "30": {
       "x": 0,
       "y": 76,
-      "w": 24,
+      "w": 12,
+      "h": 8
+    },
+    "31": {
+      "x": 12,
+      "y": 76,
+      "w": 12,
       "h": 8
     }
   },
