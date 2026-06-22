@@ -1,0 +1,337 @@
+{
+  "version": 21,
+  "variables": [],
+  "tiles": {
+    "1": {
+      "type": "markdown",
+      "content": "# 🧪 AI Chatbot - Flag Impact\n\n**Hybrid view:** correlates DevCycle chaos flag values (emitted as `feature_flag.evaluation` span events) with backend SLIs on the same span. Every chart splits the SLI by the live flag value, so the effect of a rollout is visible immediately."
+    },
+    "2": {
+      "title": "Chat requests",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| summarize requests = count()",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Requests",
+          "prefixIcon": "chat"
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "3": {
+      "title": "Chat failures",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| summarize failures = countIf(request.is_failed == true)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Failures",
+          "prefixIcon": "warningdiamond"
+        },
+        "thresholds": [
+          { "color": "#14a8f5", "value": 0 },
+          { "color": "#ffd722", "value": 10 },
+          { "color": "#f5564a", "value": 50 }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "4": {
+      "title": "LLM calls",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| summarize llm_calls = count()",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "LLM calls",
+          "prefixIcon": "ai"
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "5": {
+      "title": "Active chaos flags (last 5m)",
+      "type": "data",
+      "query": "fetch spans, from:now()-5m\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = span.events[`feature_flag.key`],\n            flag_value = span.events[`feature_flag.result.value`]\n| filter flag_value != \"0.0\" and flag_value != \"false\"\n| summarize active_chaos_flags = countDistinct(flag_key)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Non-default",
+          "prefixIcon": "flag"
+        },
+        "thresholds": [
+          { "color": "#14a8f5", "value": 0 },
+          { "color": "#ffd722", "value": 1 },
+          { "color": "#f5564a", "value": 3 }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "6": {
+      "type": "markdown",
+      "content": "## 🗺 Chaos Flag State Map\n\nOne row per chaos flag, one column per 5-minute bucket. Cells are **1 (chaos active)** when the resolved value is non-default (anything other than `0.0` / `false`), else **0**. Read horizontally to see each flag's rollout history; read vertically to spot times when multiple flags were live simultaneously."
+    },
+    "7": {
+      "title": "Chaos active by flag, over time",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = span.events[`feature_flag.key`],\n            flag_value = span.events[`feature_flag.result.value`],\n            evt_ts = span.events[`timestamp`]\n| fieldsAdd is_chaos = flag_value != \"0.0\" and flag_value != \"false\"\n| summarize chaos_value = takeAny(if(is_chaos, flag_value)),\n            default_value = takeAny(flag_value),\n    by:{ bucket_ts = bin(evt_ts, 5m), flag_key }\n| filterOut isNull(bucket_ts)\n| sort bucket_ts asc\n| fieldsAdd flag_value = coalesce(chaos_value, default_value),\n            time_bucket = formatTimestamp(bucket_ts, format: \"MMM dd HH:mm\")\n| fieldsAdd state = if(flag_value != \"0.0\" and flag_value != \"false\", \"chaos\", else: \"default\")\n| fields time_bucket, flag_key, flag_value, state",
+      "visualization": "heatmap",
+      "visualizationSettings": {
+        "heatmap": {
+          "xAxis": { "label": "Time bucket (5m)", "fieldName": "time_bucket" },
+          "yAxis": { "label": "Flag", "fieldName": "flag_key" },
+          "valueField": "state"
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "colorMode": "single-color",
+              "color": "var(--dt-colors-charts-apdex-excellent-default, #2a7453)",
+              "comparator": "=",
+              "field": "state",
+              "value": "default",
+              "type": "string"
+            },
+            {
+              "colorMode": "single-color",
+              "color": "var(--dt-colors-charts-loglevel-error-default, #cd3741)",
+              "comparator": "=",
+              "field": "state",
+              "value": "chaos",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "10": {
+      "type": "markdown",
+      "content": "## ⏱ Flag Impact — Backend Latency\n\nBackend p95 of `POST /api/chat` split by the live value of each delay-injecting flag. A non-`0.0` series rising above the `0.0` baseline is the rollout's latency cost."
+    },
+    "11": {
+      "title": "p95 latency by chaos-random-delay-max-ms",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| filter span.events[`feature_flag.key`] == \"chaos-random-delay-max-ms\"\n| makeTimeseries p95 = percentile(duration, 95),\n    by:{ flag_value = span.events[`feature_flag.result.value`] }",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "position": "bottom" },
+          "curve": "smooth"
+        },
+        "unitsOverrides": [
+          {
+            "identifier": "p95",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "cascade": null
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "12": {
+      "title": "p95 latency by chaos-fixed-delay-ms",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| filter span.events[`feature_flag.key`] == \"chaos-fixed-delay-ms\"\n| makeTimeseries p95 = percentile(duration, 95),\n    by:{ flag_value = span.events[`feature_flag.result.value`] }",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "position": "bottom" },
+          "curve": "smooth"
+        },
+        "unitsOverrides": [
+          {
+            "identifier": "p95",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "cascade": null
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "20": {
+      "type": "markdown",
+      "content": "## 💥 Flag Impact — Errors\n\nFailure count on `POST /api/chat` split by the live value of each error-injecting flag. A non-default series above zero is the rollout's error cost."
+    },
+    "21": {
+      "title": "Failures by chaos-http-500-rate",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| filter span.events[`feature_flag.key`] == \"chaos-http-500-rate\"\n| makeTimeseries failures = countIf(request.is_failed == true),\n    by:{ flag_value = span.events[`feature_flag.result.value`] }",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "position": "bottom" },
+          "curve": "smooth"
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "22": {
+      "title": "Failures by chaos-http-503-rate",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"POST /api/chat\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| filter span.events[`feature_flag.key`] == \"chaos-http-503-rate\"\n| makeTimeseries failures = countIf(request.is_failed == true),\n    by:{ flag_value = span.events[`feature_flag.result.value`] }",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "position": "bottom" },
+          "curve": "smooth"
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "30": {
+      "type": "markdown",
+      "content": "## 🕒 Flag Change Timeline\n\nWhen each `(flag, value)` pair was first and last observed, with the evaluation count. Use this to align rollout windows with latency / error charts above."
+    },
+    "31": {
+      "title": "Recent flag values",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = span.events[`feature_flag.key`],\n            flag_value = span.events[`feature_flag.result.value`],\n            evt_ts = span.events[`timestamp`]\n| summarize first_seen = min(evt_ts),\n            last_seen = max(evt_ts),\n            evaluations = count(),\n    by:{ flag_key, flag_value }\n| sort last_seen desc\n| limit 50",
+      "visualization": "table",
+      "visualizationSettings": {},
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    },
+    "32": {
+      "title": "Evaluations per (flag, value)",
+      "type": "data",
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = span.events[`feature_flag.key`],\n            flag_value = span.events[`feature_flag.result.value`]\n| filter flag_value != \"0.0\" and flag_value != \"false\"\n| summarize evaluations = count(), by:{ flag_key, flag_value }\n| sort evaluations desc\n| limit 30",
+      "visualization": "categoricalBarChart",
+      "visualizationSettings": {},
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      }
+    }
+  },
+  "layouts": {
+    "1":  { "x": 0,  "y": 0,  "w": 24, "h": 2 },
+    "2":  { "x": 0,  "y": 2,  "w": 6,  "h": 4 },
+    "3":  { "x": 6,  "y": 2,  "w": 6,  "h": 4 },
+    "4":  { "x": 12, "y": 2,  "w": 6,  "h": 4 },
+    "5":  { "x": 18, "y": 2,  "w": 6,  "h": 4 },
+    "6":  { "x": 0,  "y": 6,  "w": 24, "h": 1 },
+    "7":  { "x": 0,  "y": 7,  "w": 24, "h": 8 },
+    "10": { "x": 0,  "y": 15, "w": 24, "h": 1 },
+    "11": { "x": 0,  "y": 16, "w": 12, "h": 8 },
+    "12": { "x": 12, "y": 16, "w": 12, "h": 8 },
+    "20": { "x": 0,  "y": 24, "w": 24, "h": 1 },
+    "21": { "x": 0,  "y": 25, "w": 12, "h": 8 },
+    "22": { "x": 12, "y": 25, "w": 12, "h": 8 },
+    "30": { "x": 0,  "y": 33, "w": 24, "h": 1 },
+    "31": { "x": 0,  "y": 34, "w": 14, "h": 10 },
+    "32": { "x": 14, "y": 34, "w": 10, "h": 10 }
+  },
+  "settings": {
+    "gridLayout": { "mode": "responsive", "columnsCount": 24 }
+  },
+  "annotations": [
+    {
+      "key": "chaos-active",
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"active\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "dataMapping": {
+        "name": {"field": "event.name", "type": "string"},
+        "description": {"field": "event.description", "type": "string"},
+        "start": {"field": "event.start", "type": "timestamp"},
+        "end": {"field": "event.end", "type": "timestamp"}
+      },
+      "displaySettings": {
+        "color": "var(--dt-colors-charts-loglevel-error-default, #cd3741)",
+        "referenceIds": ["11", "12", "21", "22"]
+      },
+      "type": "query",
+      "version": 2,
+      "name": "Chaos Engineering Enabled"
+    },
+    {
+      "key": "chaos-inactive",
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"inactive\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "dataMapping": {
+        "name": {"field": "preset", "type": "string"},
+        "description": {"field": "event.description", "type": "string"},
+        "start": {"field": "event.start", "type": "timestamp"},
+        "end": {"field": "event.end", "type": "timestamp"}
+      },
+      "displaySettings": {
+        "color": "var(--dt-colors-charts-apdex-excellent-default, #2a7453)",
+        "referenceIds": ["11", "12", "21", "22"]
+      },
+      "type": "query",
+      "version": 2,
+      "name": "Chaos Engineering Disabled"
+    }
+  ]
+}
