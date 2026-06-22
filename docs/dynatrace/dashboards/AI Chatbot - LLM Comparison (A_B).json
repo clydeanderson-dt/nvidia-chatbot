@@ -1,0 +1,769 @@
+{
+  "version": 21,
+  "variables": [
+    {
+      "version": 2,
+      "key": "CallType",
+      "type": "csv",
+      "visible": true,
+      "editable": true,
+      "input": "Chat,Suggestions",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "Model",
+      "type": "query",
+      "visible": true,
+      "editable": true,
+      "input": "fetch spans, from:now() - 6h\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter isNotNull(`llm.model`)\n| dedup `llm.model`\n| fields `llm.model`\n| sort `llm.model` asc",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "defaultValue": "0.10",
+      "editable": true,
+      "key": "PriceIn",
+      "type": "text",
+      "version": 2,
+      "visible": true
+    },
+    {
+      "defaultValue": "0.40",
+      "editable": true,
+      "key": "PriceOut",
+      "type": "text",
+      "version": 2,
+      "visible": true
+    }
+  ],
+  "tiles": {
+    "1": {
+      "content": "# 🤖 AI Chatbot — LLM Comparison\n\n**Related views:** [AI & LLM Observability app](/ui/apps/dynatrace.ai.observability) · [Services app](/ui/apps/dynatrace.services) · [Distributed Tracing app](/ui/apps/dynatrace.distributedtracing) · [AI Chatbot — Observability dashboard](/ui/apps/dynatrace.dashboards) · [AI Chatbot — Flag Impact dashboard](/ui/apps/dynatrace.dashboards) · [AI Chatbot — Feature Flag Observability dashboard](/ui/apps/dynatrace.dashboards)",
+      "type": "markdown"
+    },
+    "2": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize requests = count()",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "LLM-backed requests",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Requests",
+          "prefixIcon": "chat"
+        }
+      }
+    },
+    "3": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize models = countDistinct(`llm.model`)",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Models in rotation",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Distinct models",
+          "prefixIcon": "ai"
+        }
+      }
+    },
+    "4": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize p95 = percentile(duration, 95)",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Overall p95 latency",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "p95",
+          "prefixIcon": "duration"
+        }
+      }
+    },
+    "5": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize err_pct = (toDouble(countIf(request.is_failed == true)) / toDouble(count())) * 100.0",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Error rate",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "Error %",
+          "prefixIcon": "warningdiamond",
+          "unit": "%"
+        },
+        "thresholds": [
+          {
+            "color": "#14a8f5",
+            "value": 0
+          },
+          {
+            "color": "#ffd722",
+            "value": 1
+          },
+          {
+            "color": "#f5564a",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "6": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| summarize {in_tok = sum(gen_ai.usage.input_tokens), out_tok = sum(gen_ai.usage.output_tokens)}\n| fieldsAdd cost_usd = (toDouble(in_tok) / 1000000.0) * $PriceIn:noquote + (toDouble(out_tok) / 1000000.0) * $PriceOut:noquote\n| fields cost_usd",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Estimated cost (USD)",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "USD",
+          "prefixIcon": "currencydollar"
+        }
+      }
+    },
+    "7": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize untagged_pct = (toDouble(countIf(isNull(`client.type`) or `client.type` == \"\" or `client.type` == \"unknown\")) / toDouble(count())) * 100.0",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Untagged client.type",
+      "type": "data",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "label": "% untagged",
+          "prefixIcon": "tag",
+          "unit": "%"
+        },
+        "thresholds": [
+          {
+            "color": "#14a8f5",
+            "value": 0
+          },
+          {
+            "color": "#ffd722",
+            "value": 5
+          },
+          {
+            "color": "#f5564a",
+            "value": 20
+          }
+        ]
+      }
+    },
+    "8": {
+      "content": "## 🏁 Model leaderboard\nOne row per model. Latency in ms, error % computed from `request.is_failed`. Sort by any column.",
+      "type": "markdown"
+    },
+    "9": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize {requests = count(), p50_ms = percentile(duration, 50) / 1000000.0, p95_ms = percentile(duration, 95) / 1000000.0, p99_ms = percentile(duration, 99) / 1000000.0, err_pct = (toDouble(countIf(request.is_failed == true)) / toDouble(count())) * 100.0}, by:{model = `llm.model`}\n| sort requests desc",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "Leaderboard — performance per model",
+      "type": "data",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {}
+      }
+    },
+    "10": {
+      "content": "## 📈 Time trends per model\nOne series per `llm.model`. Useful for spotting rollout cutovers (request-rate steps) and steady-state vs spike latency.",
+      "type": "markdown"
+    },
+    "11": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| makeTimeseries p95 = percentile(duration, 95), by:{model = `llm.model`}",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "p95 latency over time by model",
+      "type": "data",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "unitsOverrides": [
+          {
+            "identifier": "p95",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "cascade": null,
+            "added": 1782159454426
+          }
+        ],
+        "chartSettings": {
+          "gapPolicy": "connect",
+          "curve": "smooth"
+        }
+      }
+    },
+    "12": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| makeTimeseries requests = count(), by:{model = `llm.model`}",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Request rate over time by model",
+      "type": "data",
+      "visualization": "areaChart",
+      "visualizationSettings": {}
+    },
+    "13": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| makeTimeseries {errors = countIf(request.is_failed == true), requests = count()}",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "Error count over time by model",
+      "type": "data",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "gapPolicy": "connect",
+          "curve": "smooth"
+        }
+      }
+    },
+    "14": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| fieldsAdd record_cost = (toDouble(gen_ai.usage.input_tokens) / 1000000.0) * $PriceIn:noquote + (toDouble(gen_ai.usage.output_tokens) / 1000000.0) * $PriceOut:noquote\n| makeTimeseries cost_usd = sum(record_cost), by:{model = gen_ai.request.model}",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "Estimated cost over time by model (USD)",
+      "type": "data",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "curve": "smooth",
+          "gapPolicy": "connect"
+        }
+      }
+    },
+    "15": {
+      "content": "## 🔀 Cross-tabs — model vs call-type vs traffic class\nReveal whether a model behaves differently per call type or per traffic class. **Real** = `web` + `mobile`, **synthetic** = `load-gen`, **unknown** = anything else (or untagged).",
+      "type": "markdown"
+    },
+    "16": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| fieldsAdd call_type = if(span.name == \"chat_response.workflow\", \"Chat\", else: if(in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}), \"Suggestions\", else: \"Other\"))\n| summarize p95_ms = percentile(duration, 95) / 1000000.0, by:{model = `llm.model`, call_type}",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "p95 latency (ms): model × call-type",
+      "type": "data",
+      "visualization": "heatmap",
+      "visualizationSettings": {}
+    },
+    "17": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| fieldsAdd traffic_class = if(in(`client.type`, {\"web\",\"mobile\"}), \"real\", else: if(`client.type` == \"load-gen\", \"synthetic\", else: \"unknown\"))\n| summarize requests = count(), by:{model = `llm.model`, traffic_class}",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Requests: model × traffic class",
+      "type": "data",
+      "visualization": "heatmap",
+      "visualizationSettings": {
+        "autoSelectVisualization": false
+      }
+    },
+    "18": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| fieldsAdd traffic_class = if(in(`client.type`, {\"web\",\"mobile\"}), \"real\", else: if(`client.type` == \"load-gen\", \"synthetic\", else: \"unknown\"))\n| summarize p95_ms = percentile(duration, 95) / 1000000.0, by:{model = `llm.model`, traffic_class}",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "p95 latency (ms): model × traffic class",
+      "type": "data",
+      "visualization": "heatmap",
+      "visualizationSettings": {}
+    },
+    "19": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| fieldsAdd traffic_class = if(in(`client.type`, {\"web\",\"mobile\"}), \"real\", else: if(`client.type` == \"load-gen\", \"synthetic\", else: \"unknown\"))\n| makeTimeseries p95 = percentile(duration, 95), by:{model = `llm.model`, traffic_class}",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "Real-vs-synthetic p95 over time (per model)",
+      "type": "data",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "coloring": {
+          "thresholdRules": []
+        },
+        "unitsOverrides": [
+          {
+            "identifier": "p95",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "cascade": null,
+            "added": 1782159510833
+          }
+        ],
+        "chartSettings": {
+          "gapPolicy": "connect",
+          "curve": "smooth"
+        }
+      }
+    },
+    "20": {
+      "content": "## 💰 Token economics\nDerived from child `ChatNVIDIA.chat` spans (`gen_ai.usage.*`). Cost uses the `$PriceIn` / `$PriceOut` variables (USD per **million** tokens). Tokens/sec = `output_tokens / duration` — the truest \"throughput\" comparison between models.",
+      "type": "markdown"
+    },
+    "21": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| summarize {calls = count(), in_tok = sum(gen_ai.usage.input_tokens), out_tok = sum(gen_ai.usage.output_tokens), avg_in = avg(gen_ai.usage.input_tokens), avg_out = avg(gen_ai.usage.output_tokens), tok_per_sec = avg(toDouble(gen_ai.usage.output_tokens) / (toDouble(duration) / 1000000000.0))}, by:{model = gen_ai.request.model}\n| fieldsAdd cost_usd = (toDouble(in_tok) / 1000000.0) * $PriceIn:noquote + (toDouble(out_tok) / 1000000.0) * $PriceOut:noquote\n| fieldsAdd cost_per_call_usd = cost_usd / toDouble(calls)\n| sort cost_usd desc",
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "title": "Tokens & cost per model",
+      "type": "data",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {}
+      }
+    },
+    "22": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| summarize {input_tokens = sum(gen_ai.usage.input_tokens), output_tokens = sum(gen_ai.usage.output_tokens)}, by:{model = gen_ai.request.model}\n| sort input_tokens desc",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Total tokens by model",
+      "type": "data",
+      "visualization": "categoricalBarChart",
+      "visualizationSettings": {}
+    },
+    "23": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.output_tokens)\n| filter toLong(duration) > 0\n| filter in(gen_ai.request.model, array($Model))\n| fieldsAdd tps = toDouble(gen_ai.usage.output_tokens) / (toDouble(duration) / 1000000000.0)\n| summarize avg_tokens_per_sec = avg(tps), by:{model = gen_ai.request.model}\n| sort avg_tokens_per_sec desc",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Output tokens/sec by model (throughput)",
+      "type": "data",
+      "visualization": "categoricalBarChart",
+      "visualizationSettings": {}
+    },
+    "27": {
+      "content": "## 🚩 LLM flag rollout provenance\nResolved values for `llm-model-chat` and `llm-model-suggestions` over time, sourced from `feature_flag.evaluation` span events. Use this to confirm DevCycle audience rollouts are routing traffic the way you expect — should match the request-rate trend chart above.",
+      "type": "markdown"
+    },
+    "28": {
+      "davis": {
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| expand span.events\n| filter span.events[`span_event.name`] == \"feature_flag.evaluation\"\n| fieldsAdd flag_key = toString(span.events[`feature_flag.key`]), flag_value = toString(span.events[`feature_flag.result.value`])\n| filter in(flag_key, {\"llm-model-chat\",\"llm-model-suggestions\"})\n| makeTimeseries evaluations = count(), by:{flag_key, flag_value}",
+      "querySettings": {
+        "defaultSamplingRatio": 10,
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
+      },
+      "title": "Resolved model values over time (per flag)",
+      "type": "data",
+      "visualization": "areaChart",
+      "visualizationSettings": {}
+    }
+  },
+  "layouts": {
+    "1": {
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 2
+    },
+    "2": {
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "3": {
+      "x": 4,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "4": {
+      "x": 8,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "5": {
+      "x": 12,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "6": {
+      "x": 16,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "7": {
+      "x": 20,
+      "y": 2,
+      "w": 4,
+      "h": 4
+    },
+    "8": {
+      "x": 0,
+      "y": 6,
+      "w": 24,
+      "h": 2
+    },
+    "9": {
+      "x": 0,
+      "y": 8,
+      "w": 24,
+      "h": 10
+    },
+    "10": {
+      "x": 0,
+      "y": 18,
+      "w": 24,
+      "h": 2
+    },
+    "11": {
+      "x": 0,
+      "y": 20,
+      "w": 12,
+      "h": 8
+    },
+    "12": {
+      "x": 12,
+      "y": 20,
+      "w": 12,
+      "h": 8
+    },
+    "13": {
+      "x": 0,
+      "y": 28,
+      "w": 12,
+      "h": 8
+    },
+    "14": {
+      "x": 12,
+      "y": 28,
+      "w": 12,
+      "h": 8
+    },
+    "15": {
+      "x": 0,
+      "y": 36,
+      "w": 24,
+      "h": 2
+    },
+    "16": {
+      "x": 0,
+      "y": 38,
+      "w": 12,
+      "h": 8
+    },
+    "17": {
+      "x": 12,
+      "y": 38,
+      "w": 12,
+      "h": 8
+    },
+    "18": {
+      "x": 0,
+      "y": 46,
+      "w": 12,
+      "h": 8
+    },
+    "19": {
+      "x": 12,
+      "y": 46,
+      "w": 12,
+      "h": 8
+    },
+    "20": {
+      "x": 0,
+      "y": 54,
+      "w": 24,
+      "h": 2
+    },
+    "21": {
+      "x": 0,
+      "y": 56,
+      "w": 24,
+      "h": 10
+    },
+    "22": {
+      "x": 0,
+      "y": 66,
+      "w": 12,
+      "h": 8
+    },
+    "23": {
+      "x": 12,
+      "y": 66,
+      "w": 12,
+      "h": 8
+    },
+    "27": {
+      "x": 0,
+      "y": 74,
+      "w": 24,
+      "h": 2
+    },
+    "28": {
+      "x": 0,
+      "y": 76,
+      "w": 24,
+      "h": 8
+    }
+  },
+  "settings": {
+    "gridLayout": {
+      "columnsCount": 24,
+      "mode": "responsive"
+    }
+  },
+  "annotations": [
+    {
+      "dataMapping": {
+        "description": {
+          "field": "event.description",
+          "type": "string"
+        },
+        "end": {
+          "field": "event.end",
+          "type": "timestamp"
+        },
+        "name": {
+          "field": "event.name",
+          "type": "string"
+        },
+        "start": {
+          "field": "event.start",
+          "type": "timestamp"
+        }
+      },
+      "displaySettings": {
+        "color": "var(--dt-colors-charts-loglevel-error-default, #cd3741)",
+        "referenceIds": [
+          "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+        ]
+      },
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"active\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "key": "chaos-enabled-annotation",
+      "name": "Chaos Engineering Enabled",
+      "type": "query",
+      "version": 2
+    },
+    {
+      "dataMapping": {
+        "description": {
+          "field": "event.description",
+          "type": "string"
+        },
+        "end": {
+          "field": "event.end",
+          "type": "timestamp"
+        },
+        "name": {
+          "field": "preset",
+          "type": "string"
+        },
+        "start": {
+          "field": "event.start",
+          "type": "timestamp"
+        }
+      },
+      "displaySettings": {
+        "color": "var(--dt-colors-charts-apdex-excellent-default, #2a7453)",
+        "referenceIds": [
+          "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+        ]
+      },
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"inactive\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "key": "chaos-disabled-annotation",
+      "name": "Chaos Engineering Disabled",
+      "type": "query",
+      "version": 2
+    }
+  ]
+}
