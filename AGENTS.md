@@ -18,10 +18,6 @@ Per-component detail lives in `backend/README.md`, `frontend/README.md`,
 
 _None in progress._
 
-(Historical: chaos engineering → DevCycle feature flags migration completed;
-see [`docs/chaos-devcycle-migration.md`](docs/chaos-devcycle-migration.md)
-for the plan and gotchas — file will eventually be deleted.)
-
 ---
 
 ## Key Conventions
@@ -44,10 +40,21 @@ for the plan and gotchas — file will eventually be deleted.)
   (`get_suggestions`, `get_starter_suggestions`). See
   `backend/services/llm.py:resolve_model` and `resolve_suggestions_model`.
   Targeting key is the chat session ID, so a session sticks to one model
-  per call type. If you add another LLM call path, pass `session_id` through
-  and resolve via the appropriate helper — don't reintroduce a hardcoded
-  `_MODEL` constant. Fallback defaults are `meta/llama-3.1-8b-instruct`
-  (chat) and `meta/llama-3.2-3b-instruct` (suggestions).
+  per call type. Both resolvers also accept an optional `client_type` arg
+  that is forwarded to DevCycle as the `clientType` custom attribute
+  (`web` / `mobile` / `load-gen` / `unknown`), so audiences in DevCycle can
+  segment traffic by caller. If you add another LLM call path, pass
+  `session_id` and `client_type` through and resolve via the appropriate
+  helper — don't reintroduce a hardcoded `_MODEL` constant. Fallback
+  defaults are `meta/llama-3.1-8b-instruct` (chat) and
+  `meta/llama-3.2-3b-instruct` (suggestions).
+- **All chat clients send an `X-Client-Type` header** identifying the caller:
+  React frontend → `web`, Flutter frontend → `mobile`,
+  `load_gen/load_gen.py` → `load-gen`. The backend reads it in
+  `backend/routers/chat.py` via `_normalise_client_type` (whitelist; anything
+  else → `unknown`), sets it as the `client.type` span attribute, and threads
+  it into DevCycle as described above. If you add a new client, send this
+  header so audience targeting and span filters keep working.
 - **Traceloop init must come before FastAPI is imported in `main.py`.**
   Order is load-bearing; see `docs/opentelemetry-instrumentation.md` gotcha #2.
 - **CSS Modules only** in the React frontend (`.module.css`). No global CSS framework.
@@ -175,3 +182,45 @@ fetch spans, from:now() - 1h
 
 Swap `chat_response.workflow` for `chat_suggestions.task` or
 `chat_starter_suggestions.task` to analyse the suggestions model split.
+
+### Client type (`client.type` span attribute)
+
+Every chat-router span carries `client.type` (`web` / `mobile` / `load-gen` /
+`unknown`) sourced from the `X-Client-Type` request header. Use it to
+separate real-user traffic from synthetic load_gen traffic, or to compare
+web vs mobile.
+
+Traffic mix by client:
+
+```
+fetch spans, from:now() - 1h
+| filter dt.service.name == "nvidia-chatbot"
+| filter span.name == "chat_response.workflow"
+| summarize requests = count(), by:{client.type}
+| sort requests desc
+```
+
+Latency comparison by model, excluding synthetic load:
+
+```
+fetch spans, from:now() - 1h
+| filter dt.service.name == "nvidia-chatbot"
+| filter span.name == "chat_response.workflow"
+| filter client.type in {"web", "mobile"}
+| filter isNotNull(llm.model)
+| summarize {requests = count(), p95_ms = percentile(duration, 95) / 1000000},
+            by:{llm.model}
+| sort requests desc
+```
+
+Cross-tab of model × client (handy for confirming the DevCycle audiences
+are routing traffic the way you expect):
+
+```
+fetch spans, from:now() - 1h
+| filter dt.service.name == "nvidia-chatbot"
+| filter span.name == "chat_response.workflow"
+| filter isNotNull(llm.model)
+| summarize requests = count(), by:{client.type, llm.model}
+| sort requests desc
+```

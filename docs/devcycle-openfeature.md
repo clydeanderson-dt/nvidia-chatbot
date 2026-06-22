@@ -79,21 +79,23 @@ small/cheap model can serve the high-volume suggestion path while a larger
 model handles the user-facing reply.
 
 Both are evaluated in `backend/services/llm.py` with
-`EvaluationContext(targeting_key=session_id)`, so a session is sticky to one
-variation per flag.
+`EvaluationContext(targeting_key=session_id, attributes={"clientType": client_type})`,
+so a session is sticky to one variation per flag and audiences can segment
+by caller. `client_type` originates from the `X-Client-Type` request header
+(see [`backend/routers/chat.py`](../backend/routers/chat.py)) — `web`,
+`mobile`, `load-gen`, or `unknown` after normalisation.
 
 #### `llm-model-chat` — main chat reply (`get_response`)
 
 | Variation key | Model ID |
 |---|---|
 | `control` | `meta/llama-3.1-8b-instruct` |
-| `gemma-3-12b` | `google/gemma-3-12b-it` |
 | `llama-3-3-70b` | `meta/llama-3.3-70b-instruct` |
 | `mistral-medium-3-5` | `mistralai/mistral-medium-3.5-128b` |
 | `gemma-4-31b` | `google/gemma-4-31b-it` |
 
-Resolver: `resolve_model(session_id)`. Default on evaluation failure:
-`meta/llama-3.1-8b-instruct`.
+Resolver: `resolve_model(session_id, client_type)`. Default on evaluation
+failure: `meta/llama-3.1-8b-instruct`.
 
 #### `llm-model-suggestions` — follow-up + starter suggestions
 
@@ -106,11 +108,27 @@ JSON-constrained tasks; small/fast models work well.
 | `phi-4-mini` | `microsoft/phi-4-mini-instruct` |
 | `llama-3-1-8b` | `meta/llama-3.1-8b-instruct` |
 
-Resolver: `resolve_suggestions_model(session_id)`. Default on evaluation
-failure: `meta/llama-3.2-3b-instruct`.
+Resolver: `resolve_suggestions_model(session_id, client_type)`. Default on
+evaluation failure: `meta/llama-3.2-3b-instruct`.
 
-Both production configurations currently serve 100% `control`; flip on the
-experiment splits in DevCycle when you want to gather comparative data.
+#### Targeting structure (both flags, production)
+
+The production configuration for each flag has three rules evaluated
+top-down, using audiences keyed off the `clientType` custom attribute:
+
+1. **Real Users** — matches `clientType` in `{web, mobile}`. Serves the
+   experiment distribution to user-facing traffic.
+2. **Synthetics** — matches `clientType == load-gen`. Serves an even split
+   across all variations so load_gen continuously validates every model
+   slug and feeds comparison data into Dynatrace without affecting users.
+3. **All Other Users** — `type: all` catch-all serving 100% `control`.
+   Guarantees every evaluation is bucketed into a variation (so
+   `clientType=unknown` traffic still shows up in experiment results
+   instead of silently falling back to the SDK default).
+
+When adjusting distributions, keep the catch-all rule in place — it's the
+safety net that prevents stale `clientType` values from creating gaps in
+the experiment data.
 
 `ChatNVIDIA` instances are cached per `(provider, model)` so each variation
 incurs only one client construction. The resolved model is written to the

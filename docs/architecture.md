@@ -163,9 +163,14 @@ backend/
 
 ### Chat router (`routers/chat.py`)
 
+- Reads the optional `X-Client-Type` request header (`web` / `mobile` /
+  `load-gen`; anything else → `unknown`) via `_normalise_client_type` and
+  sets it as the `client.type` span attribute. The value is also threaded
+  into `services/llm` so DevCycle can segment traffic by caller.
 - `/api/chat` checks HTTP-level chaos *first* (so 500/503 can bypass the LLM
   entirely), then delegates to `services/llm.get_response` and
-  `get_suggestions`. The response is `{reply, suggestions}`.
+  `get_suggestions`. The response includes `model` and `suggestions_model`
+  resolved per session from the `llm-model-*` DevCycle flags.
 - `request.system_prompt` and `request.provider` are **optional** —
   if absent, the server falls back to `app_config.get_config()`. This lets
   the React/Flutter frontends omit them entirely and rely on backend config.
@@ -207,6 +212,11 @@ Key shared behaviours:
 - **Routing** — both expose `/` (chat) and `/config` (settings).
 - **Session ID** — generated client-side (React: per browser tab via
   `crypto.randomUUID()`; Flutter: per app launch via `const Uuid().v4()`).
+- **Client identification** — every chat request sends an `X-Client-Type`
+  header (React: `web`, Flutter: `mobile`, load_gen: `load-gen`). The
+  backend uses it as the `client.type` span attribute and as a DevCycle
+  audience attribute for the `llm-model-*` flags. If you add a new client,
+  send this header so audience targeting keeps working.
 - **System prompt and provider** — managed via `PATCH /api/config`; the
   chat hook reads them from context and does **not** send them in the
   request body, so the server uses its stored config as the source of truth.
@@ -225,39 +235,41 @@ Flutter-specific gotcha: Android emulator needs
 
 ## Observability pipeline
 
-```
-Backend code     ──► Traceloop SDK + FastAPI/Logging instrumentation ──► OTLP/HTTP
-Load generator   ──► OTel SDK + HTTPX instrumentation                ──► OTLP/HTTP
-React frontend   ──► Dynatrace JS RUM agent                          ──►  Dynatrace tenant
-Flutter frontend ──► dynatrace_flutter_plugin                        ──►
-```
-
-Telemetry is **optional** — every OTel branch is guarded; missing
-`OTLP_ENDPOINT` only logs a warning. Trace context propagates load_gen →
-backend → NVIDIA via injected `traceparent` headers.
+All four deployables ship telemetry to the same Dynatrace tenant: backend
+and load_gen via OTLP/HTTP (sharing a `traceparent` so load-gen → backend →
+NVIDIA appears as one connected trace), React via the Dynatrace JS RUM
+agent, and Flutter via `dynatrace_flutter_plugin`. Telemetry is
+**optional** — every OTel branch is guarded; missing `OTLP_ENDPOINT` only
+logs a warning.
 
 See **[`opentelemetry-instrumentation.md`](opentelemetry-instrumentation.md)**
 for the full design (init order, `_FixGenAiSystemProcessor`, log bridging,
-RUM specifics, gotchas).
+the end-to-end trace diagram, RUM specifics, and gotchas).
 
 ---
 
 ## Configuration & secrets
 
-All runtime config is environment-driven (`backend/.env`, loaded explicitly
-from the repo root by `main.py` and `services/llm.py`):
+All runtime config is environment-driven via a **single `.env` at the repo
+root**, shared by the backend and the load generator. Both call
+`load_dotenv()` with an explicit path to `<repo-root>/.env` so they work
+regardless of the current working directory; on the deployed VM, systemd
+injects the same values via `EnvironmentFile=/opt/chatbot/.env`.
 
 | Variable | Required | Used by |
 |---|---|---|
 | `NVIDIA_API_KEY` | One of these two | `services/llm.py` (nim_api client) |
 | `SELF_HOSTED_NIM_URL` | One of these two | `services/llm.py` (self_hosted client) |
-| `OTLP_ENDPOINT` | No | `main.py` Traceloop + log exporter |
-| `DEVCYCLE_SERVER_SDK_KEY` | No | `services/feature_flags.py` |
+| `OTLP_ENDPOINT` | No | `main.py` Traceloop + log exporter; `load_gen.py` |
+| `DEVCYCLE_SERVER_SDK_KEY` | No | `services/feature_flags.py` (chaos + `llm-model-*` flags) |
 | `ALLOWED_ORIGINS` | No | CORS middleware |
+| `LOAD_GEN_*` | No | `load_gen/load_gen.py` (url, concurrency, rate, provider) |
+| `VITE_DYNATRACE_RUM_URL` | No | React build (`frontend/index.html`) |
 
-`load_gen/.env` mirrors the same pattern with `load_dotenv()` so the load
-generator runs independently. Flutter has its own
-`flutter_frontend/dynatrace.config.yaml` for RUM credentials.
+The React build inlines `VITE_*` vars at build time. Flutter has its own
+`flutter_frontend/dynatrace.config.yaml` for RUM credentials (gitignored;
+copy from `.example`). See [`deploy/README.md`](../deploy/README.md) for the
+canonical variable list.
 
 No secret is ever exposed to a frontend — they only see the backend URL.
 
@@ -266,13 +278,18 @@ No secret is ever exposed to a frontend — they only see the backend URL.
 ## External control surfaces
 
 - **DevCycle Management API** (via `.github/workflows/chaos.yml`) — the
-  only thing that can change chaos state. See
+  only thing that can change chaos state, and the source of truth for the
+  `llm-model-chat` / `llm-model-suggestions` A/B distributions. See
   [`devcycle-openfeature.md`](devcycle-openfeature.md) for the OAuth flow,
-  PATCH payload, and propagation details.
+  PATCH payload, propagation details, and audience targeting (by
+  `clientType`).
 - **Backend `/api/config` PATCH** — changes the server-side fallback
   system prompt and provider. Lives only in memory.
 - **Per-request overrides** — any `/api/chat` request can include its own
-  `system_prompt` and `provider` to bypass server config.
+  `system_prompt` and `provider` to bypass server config. The
+  `X-Client-Type` header on every chat request feeds DevCycle audience
+  targeting; values outside `{web, mobile, load-gen}` normalise to
+  `unknown`.
 
 ---
 
@@ -282,29 +299,3 @@ See the README for setup commands. The four processes (backend, React,
 Flutter, load_gen) are fully independent — start whichever subset you
 need. The only hard dependency is that the frontends and load_gen need
 the backend reachable at the URL they're configured for.
-
----
-
-## File map
-
-| Path | Role |
-|---|---|
-| `backend/main.py` | OTel + FastAPI bootstrap, lifespan, exception handler, CORS, routers |
-| `backend/routers/chat.py` | Chat + starters + health + session delete; HTTP chaos gate |
-| `backend/routers/chaos.py` | Read-only chaos status endpoints |
-| `backend/routers/config.py` | App config read/update/reset |
-| `backend/services/llm.py` | LangChain `ChatNVIDIA` clients, session store, chain builder |
-| `backend/services/chaos.py` | OpenFeature flag reads + fault injection helpers |
-| `backend/services/app_config.py` | In-memory app config singleton |
-| `backend/services/feature_flags.py` | DevCycle init, OpenFeature provider registration |
-| `backend/models/schemas.py` | Pydantic models (`ChatRequest`, `AppConfig`, `ChaosConfig`, …) |
-| `frontend/src/context/ConfigContext.jsx` | App + chaos config, 5s polling |
-| `frontend/src/hooks/useChat.js` | Messages, session ID, suggestions |
-| `frontend/src/pages/*.jsx` | Chat and config pages |
-| `flutter_frontend/lib/providers/*.dart` | ChatProvider, ConfigProvider |
-| `flutter_frontend/lib/services/api_service.dart` | Dynatrace-instrumented HTTP client |
-| `flutter_frontend/lib/screens/*.dart` | Chat and config screens |
-| `load_gen/load_gen.py` | Async traffic generator |
-| `docs/devcycle-openfeature.md` | Feature-flag architecture |
-| `docs/opentelemetry-instrumentation.md` | Telemetry deep dive |
-| `docs/chaos-devcycle-migration.md` | Historical migration plan |

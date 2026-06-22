@@ -47,7 +47,7 @@ uvicorn main:app --reload
 | `SELF_HOSTED_NIM_URL` | No | backend | Base URL for a self-hosted NIM instance |
 | `VITE_DYNATRACE_RUM_URL` | No | frontend build | Dynatrace RUM JS tag URL |
 | `LOAD_GEN_URL` | No | load_gen | Backend base URL (default `http://localhost:8000`) |
-| `LOAD_GEN_CONCURRENCY` | No | load_gen | Worker count (default `10`) |
+| `LOAD_GEN_CONCURRENCY` | No | load_gen | Worker count (default `5`) |
 | `LOAD_GEN_PROVIDER` | No | load_gen | `nim_api` or `self_hosted` (default `nim_api`) |
 | `LOAD_GEN_RATE` | No | load_gen | Target req/s; unset = constant-concurrency mode |
 | `SERVER_NAME` | No | setup.sh | nginx server_name on the VM (default: VM IP) |

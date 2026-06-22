@@ -379,14 +379,18 @@ fetch user.events
 
 ## Querying telemetry in Dynatrace
 
-### Backend traces
+The canonical, up-to-date DQL cookbook lives in
+[`AGENTS.md`](../AGENTS.md#observability--dql-tips-for-dynatrace) — it
+covers backend spans/logs, cross-service traces, RUM events, feature-flag
+evaluation span events, the `llm.model` A/B test split, and the
+`client.type` traffic-segmentation queries.
+
+A few starter examples for orientation:
 
 ```dql
 fetch spans
 | filter dt.service.name == "nvidia-chatbot"
 ```
-
-GenAI-specific spans (filter for the LLM call itself):
 
 ```dql
 fetch spans
@@ -394,26 +398,9 @@ fetch spans
 | filter gen_ai.system == "nvidia"
 ```
 
-### Backend logs
-
 ```dql
 fetch logs
 | filter service.name == "nvidia-chatbot"
-```
-
-### Cross-service load-gen → backend trace
-
-```dql
-fetch spans
-| filter dt.service.name in {"chatbot-load-gen", "nvidia-chatbot"}
-| sort timestamp asc
-```
-
-### Frontend RUM
-
-```dql
-fetch user.events
-| filter frontend.name in {"AI_Chatbot", "AI_Chatbot_Flutter"}
 ```
 
 ---
