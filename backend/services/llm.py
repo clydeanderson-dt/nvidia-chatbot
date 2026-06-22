@@ -31,11 +31,13 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 logger = logging.getLogger("chatbot.llm")
 
-# Fallback model used when the `llm-model` DevCycle flag cannot be evaluated
+# Fallback models used when the DevCycle flags cannot be evaluated
 # (e.g. DevCycle SDK not initialised, flag missing, or self-hosted NIM where
 # the model is fixed by the deployed container).
 _DEFAULT_MODEL = "meta/llama-3.1-8b-instruct"
-_LLM_MODEL_FLAG = "llm-model"
+_DEFAULT_SUGGESTIONS_MODEL = "meta/llama-3.2-3b-instruct"
+_LLM_MODEL_CHAT_FLAG = "llm-model-chat"
+_LLM_MODEL_SUGGESTIONS_FLAG = "llm-model-suggestions"
 
 # ── LLM client initialisation ─────────────────────────────────────────────────
 _nvidia_api_key = os.getenv("NVIDIA_API_KEY")
@@ -46,20 +48,28 @@ _self_hosted_nim_url = os.getenv("SELF_HOSTED_NIM_URL")
 _llm_cache: dict[tuple[str, str], ChatNVIDIA] = {}
 
 
-def resolve_model(session_id: str | None) -> str:
-    """Resolve the model ID for a session via the `llm-model` DevCycle flag.
+def _resolve_flag(flag_key: str, default: str, session_id: str | None) -> str:
+    """Resolve a string flag via OpenFeature with `session_id` as targeting key.
 
-    Uses `session_id` as the OpenFeature targeting key so each session sticks
-    to one model across requests. Falls back to `_DEFAULT_MODEL` if OpenFeature
-    is not initialised or evaluation fails.
+    Falls back to `default` if OpenFeature is not initialised or evaluation fails.
     """
     try:
         client = get_openfeature_client()
         ctx = EvaluationContext(targeting_key=session_id or "anonymous")
-        return client.get_string_value(_LLM_MODEL_FLAG, _DEFAULT_MODEL, ctx)
+        return client.get_string_value(flag_key, default, ctx)
     except Exception as exc:
-        logger.warning("Failed to resolve %s flag: %s", _LLM_MODEL_FLAG, exc)
-        return _DEFAULT_MODEL
+        logger.warning("Failed to resolve %s flag: %s", flag_key, exc)
+        return default
+
+
+def resolve_model(session_id: str | None) -> str:
+    """Resolve the chat reply model via the `llm-model-chat` DevCycle flag."""
+    return _resolve_flag(_LLM_MODEL_CHAT_FLAG, _DEFAULT_MODEL, session_id)
+
+
+def resolve_suggestions_model(session_id: str | None) -> str:
+    """Resolve the suggestions model via the `llm-model-suggestions` DevCycle flag."""
+    return _resolve_flag(_LLM_MODEL_SUGGESTIONS_FLAG, _DEFAULT_SUGGESTIONS_MODEL, session_id)
 
 
 def _get_llm(provider: str, model: str) -> ChatNVIDIA | None:
@@ -205,7 +215,8 @@ async def get_suggestions(
 
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = resolve_model(session_id)
+    model = resolve_suggestions_model(session_id)
+    _otel_trace.get_current_span().set_attribute("llm.model", model)
     llm = _get_llm(provider, model)
     if llm is None:
         return []
@@ -250,7 +261,8 @@ async def get_starter_suggestions(
     Uses the system prompt to tailor suggestions to the assistant's role.
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = resolve_model(session_id)
+    model = resolve_suggestions_model(session_id)
+    _otel_trace.get_current_span().set_attribute("llm.model", model)
     llm = _get_llm(provider, model)
     if llm is None:
         return []

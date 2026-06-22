@@ -10,7 +10,7 @@ FastAPI application that manages AI chat sessions via LangChain and the NVIDIA N
 |---|---|
 | `main.py` | FastAPI app setup: CORS middleware, Traceloop/OTel initialisation, router registration, lifespan hooks |
 | `routers/chat.py` | Route handlers for all `/api/*` endpoints |
-| `services/llm.py` | LangChain chain construction, in-memory session store, LLM inference, suggestion and starter generation. Resolves the active model per session via the `llm-model` DevCycle flag. |
+| `services/llm.py` | LangChain chain construction, in-memory session store, LLM inference, suggestion and starter generation. Resolves the chat reply model per session via the `llm-model-chat` DevCycle flag and the suggestions model via `llm-model-suggestions`. |
 | `services/feature_flags.py` | OpenFeature initialization with the DevCycle provider |
 | `models/schemas.py` | Pydantic request/response models |
 | `requirements.txt` | Python dependencies |
@@ -99,8 +99,8 @@ provider), `SELF_HOSTED_NIM_URL` (enables `self_hosted` provider),
 ```
 
 `session_id` is optional but recommended — when supplied it's used as the
-`llm-model` flag targeting key so starter suggestions are served by the same
-model variation as the rest of the session.
+`llm-model-suggestions` flag targeting key so starter suggestions are served
+by a consistent model variation across the session.
 
 **Response**
 
@@ -215,7 +215,7 @@ for the full instrumentation design, init order, and gotchas.
 
 | Provider | Variable needed | Model |
 |---|---|---|
-| `nim_api` | `NVIDIA_API_KEY` | Resolved per session via the `llm-model` DevCycle flag (default `meta/llama-3.1-8b-instruct`) — see [`docs/devcycle-openfeature.md`](../docs/devcycle-openfeature.md) |
-| `self_hosted` | `SELF_HOSTED_NIM_URL` | Whatever model is served by the local NIM container (the `llm-model` flag is ignored) |
+| `nim_api` | `NVIDIA_API_KEY` | Resolved per session via the `llm-model-chat` (chat reply) and `llm-model-suggestions` (suggestions) DevCycle flags — see [`docs/devcycle-openfeature.md`](../docs/devcycle-openfeature.md) |
+| `self_hosted` | `SELF_HOSTED_NIM_URL` | Whatever model is served by the local NIM container (the `llm-model-*` flags are ignored) |
 
 The `provider` field in each `POST /api/chat` request selects which provider to use. Both providers can be active simultaneously if both variables are set.

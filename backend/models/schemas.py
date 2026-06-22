@@ -76,7 +76,11 @@ class ChatResponse(BaseModel):
     suggestions: list[str] = []
     model: Optional[str] = Field(
         default=None,
-        description="LLM model ID that served this reply (resolved via the `llm-model` DevCycle flag).",
+        description="LLM model ID that served this reply (resolved via the `llm-model-chat` DevCycle flag).",
+    )
+    suggestions_model: Optional[str] = Field(
+        default=None,
+        description="LLM model ID used for follow-up suggestions (resolved via the `llm-model-suggestions` DevCycle flag).",
     )
 
 
@@ -103,5 +107,9 @@ class StarterResponse(BaseModel):
     suggestions: list[str] = []
     model: Optional[str] = Field(
         default=None,
-        description="LLM model ID resolved for this session (via the `llm-model` DevCycle flag).",
+        description="LLM model ID resolved for this session (via the `llm-model-chat` DevCycle flag).",
+    )
+    suggestions_model: Optional[str] = Field(
+        default=None,
+        description="LLM model ID used to generate the starter suggestions (via the `llm-model-suggestions` DevCycle flag).",
     )

@@ -38,13 +38,16 @@ for the plan and gotchas — file will eventually be deleted.)
   `.github/workflows/chaos.yml`) can mutate chaos state. Don't reintroduce
   `PATCH /api/chaos`, `POST /api/chaos/reset`, or
   `POST /api/chaos/preset/{name}` — they were intentionally removed.
-- **The active LLM model is resolved per session via the `llm-model`
-  DevCycle flag** (see `backend/services/llm.py:_resolve_model`). Targeting
-  key is the chat session ID, so a session sticks to one model across its
-  chat reply, follow-up suggestions, and starter suggestions. If you add
-  another LLM call path, pass `session_id` through and resolve via
-  `_resolve_model(session_id)` — don't reintroduce a hardcoded `_MODEL`
-  constant. Fallback default is `meta/llama-3.1-8b-instruct`.
+- **LLM models are resolved per session via two DevCycle flags**:
+  `llm-model-chat` for the main reply (`get_response`) and
+  `llm-model-suggestions` for follow-up + starter suggestions
+  (`get_suggestions`, `get_starter_suggestions`). See
+  `backend/services/llm.py:resolve_model` and `resolve_suggestions_model`.
+  Targeting key is the chat session ID, so a session sticks to one model
+  per call type. If you add another LLM call path, pass `session_id` through
+  and resolve via the appropriate helper — don't reintroduce a hardcoded
+  `_MODEL` constant. Fallback defaults are `meta/llama-3.1-8b-instruct`
+  (chat) and `meta/llama-3.2-3b-instruct` (suggestions).
 - **Traceloop init must come before FastAPI is imported in `main.py`.**
   Order is load-bearing; see `docs/opentelemetry-instrumentation.md` gotcha #2.
 - **CSS Modules only** in the React frontend (`.module.css`). No global CSS framework.
@@ -154,10 +157,11 @@ fetch spans, from:now() - 15m
 | sort evaluations desc
 ```
 
-### LLM model A/B test (`llm-model` flag)
+### LLM model A/B test (`llm-model-chat` and `llm-model-suggestions` flags)
 
-The resolved model is also written to the `llm.model` span attribute on
-`chat_response.workflow` spans. To compare latency by model variation:
+The resolved model is written to the `llm.model` span attribute on
+`chat_response.workflow`, `chat_suggestions.task`, and
+`chat_starter_suggestions.task` spans. To compare chat latency by model:
 
 ```
 fetch spans, from:now() - 1h
@@ -168,3 +172,6 @@ fetch spans, from:now() - 1h
             by:{llm.model}
 | sort requests desc
 ```
+
+Swap `chat_response.workflow` for `chat_suggestions.task` or
+`chat_starter_suggestions.task` to analyse the suggestions model split.

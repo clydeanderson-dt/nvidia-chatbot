@@ -26,19 +26,46 @@
 
 .titleGroup {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
-.model {
+.modelList {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 1px;
+  margin: 2px 0 0;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.modelRow {
+  display: contents;
+}
+
+.modelLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.modelValue {
   font-size: 0.72rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .headerActions {

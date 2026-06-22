@@ -5,8 +5,9 @@ application — what each piece does, how requests flow, and why the boundaries
 are drawn where they are.
 
 - **LLM**: [NVIDIA NIM](https://www.nvidia.com/en-us/ai/) serving
-  `meta/llama-3.1-8b-instruct` by default; the active model is resolved
-  per-session via the `llm-model` DevCycle flag (managed API or self-hosted)
+  `meta/llama-3.1-8b-instruct` by default; chat replies and suggestions are
+  resolved independently per session via the `llm-model-chat` and
+  `llm-model-suggestions` DevCycle flags (managed API or self-hosted)
 - **Backend**: Python / FastAPI (`backend/`)
 - **Frontends**: React/Vite web app (`frontend/`) and Flutter mobile/desktop
   app (`flutter_frontend/`) — both consume the same HTTP API

@@ -14,7 +14,14 @@ from fastapi import APIRouter, HTTPException
 from opentelemetry import trace
 
 from models.schemas import ChatRequest, ChatResponse, HealthResponse, StarterRequest, StarterResponse
-from services.llm import clear_session, get_response, get_starter_suggestions, get_suggestions, resolve_model
+from services.llm import (
+    clear_session,
+    get_response,
+    get_starter_suggestions,
+    get_suggestions,
+    resolve_model,
+    resolve_suggestions_model,
+)
 from services import chaos, app_config
 
 logger = logging.getLogger("chatbot.api")
@@ -103,7 +110,12 @@ async def chat(request: ChatRequest) -> ChatResponse:
         len(reply),
         len(suggestions),
     )
-    return ChatResponse(reply=reply, suggestions=suggestions, model=resolve_model(request.session_id))
+    return ChatResponse(
+        reply=reply,
+        suggestions=suggestions,
+        model=resolve_model(request.session_id),
+        suggestions_model=resolve_suggestions_model(request.session_id),
+    )
 
 
 @router.post("/chat/starters", response_model=StarterResponse)
@@ -119,7 +131,11 @@ async def chat_starters(request: StarterRequest) -> StarterResponse:
         provider=provider,
         session_id=request.session_id,
     )
-    return StarterResponse(suggestions=suggestions, model=resolve_model(request.session_id))
+    return StarterResponse(
+        suggestions=suggestions,
+        model=resolve_model(request.session_id),
+        suggestions_model=resolve_suggestions_model(request.session_id),
+    )
 
 
 @router.delete("/chat/{session_id}")

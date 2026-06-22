@@ -71,33 +71,54 @@ to **All Users** (the demo treats the whole app as production).
 
 In addition to `chaos-preset`, the backend reads these features via OpenFeature:
 
-### `llm-model` — A/B test of the underlying LLM
+### `llm-model-chat` and `llm-model-suggestions` — split A/B test of the underlying LLM
 
-A **String** flag whose value is the NVIDIA NIM model ID (e.g.
-`meta/llama-3.1-8b-instruct`) used to instantiate `ChatNVIDIA` for a given
-session. Evaluated in `backend/services/llm.py` with
-`EvaluationContext(targeting_key=session_id)`, so each session is sticky to a
-single variation across all calls (chat reply, follow-up suggestions, and
-starter suggestions).
+Two **String** flags whose values are NVIDIA NIM model IDs used to
+instantiate `ChatNVIDIA`. Chat replies and suggestions are decoupled so a
+small/cheap model can serve the high-volume suggestion path while a larger
+model handles the user-facing reply.
+
+Both are evaluated in `backend/services/llm.py` with
+`EvaluationContext(targeting_key=session_id)`, so a session is sticky to one
+variation per flag.
+
+#### `llm-model-chat` — main chat reply (`get_response`)
 
 | Variation key | Model ID |
 |---|---|
 | `control` | `meta/llama-3.1-8b-instruct` |
-| `llama-3-2-3b` | `meta/llama-3.2-3b-instruct` |
 | `gemma-3-12b` | `google/gemma-3-12b-it` |
 | `llama-3-3-70b` | `meta/llama-3.3-70b-instruct` |
-| `phi-4-mini` | `microsoft/phi-4-mini-instruct` |
+| `mistral-medium-3-5` | `mistralai/mistral-medium-3.5-128b` |
+| `gemma-4-31b` | `google/gemma-4-31b-it` |
 
-Production targeting splits evenly (20% each) across all variations, bucketed
-by `user_id` (the chat session ID). If DevCycle isn't initialised or
-evaluation fails, the backend falls back to `_DEFAULT_MODEL`
-(`meta/llama-3.1-8b-instruct`) — chat continues to work.
+Resolver: `resolve_model(session_id)`. Default on evaluation failure:
+`meta/llama-3.1-8b-instruct`.
+
+#### `llm-model-suggestions` — follow-up + starter suggestions
+
+Used by `get_suggestions` and `get_starter_suggestions`. These are short,
+JSON-constrained tasks; small/fast models work well.
+
+| Variation key | Model ID |
+|---|---|
+| `control` | `meta/llama-3.2-3b-instruct` |
+| `phi-4-mini` | `microsoft/phi-4-mini-instruct` |
+| `llama-3-1-8b` | `meta/llama-3.1-8b-instruct` |
+
+Resolver: `resolve_suggestions_model(session_id)`. Default on evaluation
+failure: `meta/llama-3.2-3b-instruct`.
+
+Both production configurations currently serve 100% `control`; flip on the
+experiment splits in DevCycle when you want to gather comparative data.
 
 `ChatNVIDIA` instances are cached per `(provider, model)` so each variation
 incurs only one client construction. The resolved model is written to the
-`llm.model` span attribute on each request for Dynatrace analysis.
+`llm.model` span attribute on `chat_response.workflow`,
+`chat_suggestions.task`, and `chat_starter_suggestions.task` spans for
+Dynatrace analysis.
 
-Note: the `self_hosted` provider ignores this flag — its model is fixed by
+Note: the `self_hosted` provider ignores these flags — its model is fixed by
 the deployed NIM container.
 
 ---

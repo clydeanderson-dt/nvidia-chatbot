@@ -30,6 +30,7 @@ export function useChat() {
   const [suggestions, setSuggestions] = useState([]);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [model, setModel] = useState(null);
+  const [suggestionsModel, setSuggestionsModel] = useState(null);
 
   // Get config from context (server-side configuration)
   const { appConfig, refreshChaosConfig } = useConfig();
@@ -58,6 +59,7 @@ export function useChat() {
       if (generation !== starterGenerationRef.current) return; // superseded
       setSuggestions(data.suggestions ?? []);
       if (data.model) setModel(data.model);
+      if (data.suggestions_model) setSuggestionsModel(data.suggestions_model);
     } catch {
       // Starter suggestions are best-effort — never break the UI.
     } finally {
@@ -129,6 +131,7 @@ export function useChat() {
         });
         setSuggestions(data.suggestions ?? []);
         if (data.model) setModel(data.model);
+        if (data.suggestions_model) setSuggestionsModel(data.suggestions_model);
         // Refresh chaos config after receiving response
         refreshChaosConfig();
       } catch (err) {
@@ -163,5 +166,5 @@ export function useChat() {
     refreshChaosConfig();
   }, [sessionId, fetchStarterSuggestions, refreshChaosConfig]);
 
-  return { messages, isStreaming, suggestions, isSuggestionsLoading, model, sendMessage, clearHistory };
+  return { messages, isStreaming, suggestions, isSuggestionsLoading, model, suggestionsModel, sendMessage, clearHistory };
 }
