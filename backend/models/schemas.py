@@ -74,6 +74,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     suggestions: list[str] = []
+    model: Optional[str] = Field(
+        default=None,
+        description="LLM model ID that served this reply (resolved via the `llm-model` DevCycle flag).",
+    )
 
 
 class HealthResponse(BaseModel):
@@ -97,3 +101,7 @@ class StarterRequest(BaseModel):
 
 class StarterResponse(BaseModel):
     suggestions: list[str] = []
+    model: Optional[str] = Field(
+        default=None,
+        description="LLM model ID resolved for this session (via the `llm-model` DevCycle flag).",
+    )

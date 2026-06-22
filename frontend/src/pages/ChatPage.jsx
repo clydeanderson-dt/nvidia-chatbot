@@ -8,7 +8,7 @@ import { SuggestionChips } from '../components/SuggestionChips';
 import styles from './ChatPage.module.css';
 
 export function ChatPage() {
-  const { messages, isStreaming, suggestions, sendMessage, clearHistory } = useChat();
+  const { messages, isStreaming, suggestions, model, sendMessage, clearHistory } = useChat();
   const { isAnyChaosActive, refreshChaosConfig } = useConfig();
 
   // Refresh chaos config when page loads
@@ -19,7 +19,14 @@ export function ChatPage() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <h1 className={styles.title}>AI Chatbot</h1>
+        <div className={styles.titleGroup}>
+          <h1 className={styles.title}>AI Chatbot</h1>
+          {model && (
+            <span className={styles.model} title="Current LLM model">
+              {model}
+            </span>
+          )}
+        </div>
         <div className={styles.headerActions}>
           <Link to="/config" className={styles.configLink}>
             Settings

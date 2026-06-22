@@ -15,6 +15,7 @@ class ChatProvider extends ChangeNotifier {
   bool isStreaming = false;
   List<String> suggestions = [];
   bool isSuggestionsLoading = false;
+  String? model;
 
   // Reference to ConfigProvider for system prompt and LLM provider
   ConfigProvider? _configProvider;
@@ -60,6 +61,7 @@ class ChatProvider extends ChangeNotifier {
         provider: llmProvider,
       ));
       messages.last.content = response.reply;
+      if (response.model != null) model = response.model;
       
       // Set loading state and fetch suggestions
       isSuggestionsLoading = true;
@@ -131,6 +133,7 @@ class ChatProvider extends ChangeNotifier {
         sessionId: sessionId,
       ));
       suggestions = response.suggestions;
+      if (response.model != null) model = response.model;
     } catch (e) {
       // Starter suggestions are best-effort.
     }

@@ -59,9 +59,31 @@ class _ChatScreenState extends State<ChatScreen> with RouteAware {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'AI Chatbot',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            const Text(
+              'AI Chatbot',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            if (chat.model != null) ...[
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  chat.model!,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'monospace',
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           UserInteractionWidget(

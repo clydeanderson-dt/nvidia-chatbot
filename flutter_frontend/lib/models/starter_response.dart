@@ -1,7 +1,8 @@
 class StarterResponse {
   final List<String> suggestions;
+  final String? model;
 
-  StarterResponse({this.suggestions = const []});
+  StarterResponse({this.suggestions = const [], this.model});
 
   factory StarterResponse.fromJson(Map<String, dynamic> json) {
     return StarterResponse(
@@ -9,6 +10,7 @@ class StarterResponse {
               ?.map((e) => e as String)
               .toList() ??
           [],
+      model: json['model'] as String?,
     );
   }
 }

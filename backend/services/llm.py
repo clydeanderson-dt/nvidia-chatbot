@@ -46,7 +46,7 @@ _self_hosted_nim_url = os.getenv("SELF_HOSTED_NIM_URL")
 _llm_cache: dict[tuple[str, str], ChatNVIDIA] = {}
 
 
-def _resolve_model(session_id: str | None) -> str:
+def resolve_model(session_id: str | None) -> str:
     """Resolve the model ID for a session via the `llm-model` DevCycle flag.
 
     Uses `session_id` as the OpenFeature targeting key so each session sticks
@@ -143,7 +143,7 @@ async def get_response(
     """Invoke the chain and return the assistant reply as a plain string."""
     span = _otel_trace.get_current_span()
     span.set_attribute("session.id", session_id)
-    model = _resolve_model(session_id)
+    model = resolve_model(session_id)
     span.set_attribute("llm.model", model)
     logger.info(
         "LLM request  | session=%s  model=%s  provider=%s  message_len=%d",
@@ -205,7 +205,7 @@ async def get_suggestions(
 
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = _resolve_model(session_id)
+    model = resolve_model(session_id)
     llm = _get_llm(provider, model)
     if llm is None:
         return []
@@ -250,7 +250,7 @@ async def get_starter_suggestions(
     Uses the system prompt to tailor suggestions to the assistant's role.
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = _resolve_model(session_id)
+    model = resolve_model(session_id)
     llm = _get_llm(provider, model)
     if llm is None:
         return []

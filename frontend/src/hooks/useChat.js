@@ -28,6 +28,7 @@ export function useChat() {
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [model, setModel] = useState(null);
 
   // Get config from context (server-side configuration)
   const { appConfig, refreshChaosConfig } = useConfig();
@@ -47,6 +48,7 @@ body: JSON.stringify({
     if (!response.ok) return;
     const data = await response.json();
     setSuggestions(data.suggestions ?? []);
+    if (data.model) setModel(data.model);
   } catch {
     // Starter suggestions are best-effort — never break the UI.
   }
@@ -109,6 +111,7 @@ body: JSON.stringify({
           return updated;
         });
         setSuggestions(data.suggestions ?? []);
+        if (data.model) setModel(data.model);
         // Refresh chaos config after receiving response
         refreshChaosConfig();
       } catch (err) {
@@ -143,5 +146,5 @@ body: JSON.stringify({
     refreshChaosConfig();
   }, [sessionId, fetchStarterSuggestions, refreshChaosConfig]);
 
-  return { messages, isStreaming, suggestions, sendMessage, clearHistory };
+  return { messages, isStreaming, suggestions, model, sendMessage, clearHistory };
 }
