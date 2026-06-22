@@ -11,7 +11,10 @@ import '../models/starter_request.dart';
 import '../models/starter_response.dart';
 
 class ApiService {
-  static final _headers = {'Content-Type': 'application/json'};
+  static final _headers = {
+    'Content-Type': 'application/json',
+    'X-Client-Type': 'mobile',
+  };
   final http.Client _client = Dynatrace().createHttpClient();
 
   Future<ChatResponse> postChat(ChatRequest request) async {
@@ -50,6 +53,7 @@ class ApiService {
   Future<void> deleteSession(String sessionId) async {
     final response = await _client.delete(
       Uri.parse('$baseUrl/api/chat/${Uri.encodeComponent(sessionId)}'),
+      headers: _headers,
     );
     if (response.statusCode != 200) {
       throw Exception('Server error: ${response.statusCode}');

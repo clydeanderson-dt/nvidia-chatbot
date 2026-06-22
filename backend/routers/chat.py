@@ -10,7 +10,7 @@ Endpoints:
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from opentelemetry import trace
 
 from models.schemas import ChatRequest, ChatResponse, HealthResponse, StarterRequest, StarterResponse
@@ -26,6 +26,17 @@ from services import chaos, app_config
 
 logger = logging.getLogger("chatbot.api")
 router = APIRouter(prefix="/api")
+
+# Allowed `X-Client-Type` values. Anything else is normalised to "unknown" so
+# the field stays low-cardinality for span/log/audience filtering.
+_ALLOWED_CLIENT_TYPES = {"web", "mobile", "load-gen"}
+
+
+def _normalise_client_type(raw: str | None) -> str:
+    if not raw:
+        return "unknown"
+    value = raw.strip().lower()
+    return value if value in _ALLOWED_CLIENT_TYPES else "unknown"
 
 
 def _check_http_chaos() -> None:
@@ -76,11 +87,17 @@ async def health() -> HealthResponse:
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(
+    request: ChatRequest,
+    x_client_type: str | None = Header(default=None),
+) -> ChatResponse:
     # HTTP-level chaos injection
     _check_http_chaos()
 
-    trace.get_current_span().set_attribute("session.id", request.session_id)
+    client_type = _normalise_client_type(x_client_type)
+    span = trace.get_current_span()
+    span.set_attribute("session.id", request.session_id)
+    span.set_attribute("client.type", client_type)
 
     # Use server-side config as fallback if request doesn't override
     server_config = app_config.get_config()
@@ -88,8 +105,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
     provider = request.provider or server_config.provider
 
     logger.info(
-        "Chat request | session=%s message_len=%d",
+        "Chat request | session=%s client_type=%s message_len=%d",
         request.session_id,
+        client_type,
         len(request.message),
     )
     reply = await get_response(
@@ -97,12 +115,14 @@ async def chat(request: ChatRequest) -> ChatResponse:
         message=request.message,
         system_prompt=system_prompt,
         provider=provider,
+        client_type=client_type,
     )
     suggestions = await get_suggestions(
         message=request.message,
         reply=reply,
         provider=provider,
         session_id=request.session_id,
+        client_type=client_type,
     )
     logger.info(
         "Chat response | session=%s reply_len=%d suggestions=%d",
@@ -113,33 +133,49 @@ async def chat(request: ChatRequest) -> ChatResponse:
     return ChatResponse(
         reply=reply,
         suggestions=suggestions,
-        model=resolve_model(request.session_id),
-        suggestions_model=resolve_suggestions_model(request.session_id),
+        model=resolve_model(request.session_id, client_type),
+        suggestions_model=resolve_suggestions_model(request.session_id, client_type),
     )
 
 
 @router.post("/chat/starters", response_model=StarterResponse)
-async def chat_starters(request: StarterRequest) -> StarterResponse:
+async def chat_starters(
+    request: StarterRequest,
+    x_client_type: str | None = Header(default=None),
+) -> StarterResponse:
+    client_type = _normalise_client_type(x_client_type)
+    trace.get_current_span().set_attribute("client.type", client_type)
+
     # Use server-side config as fallback
     server_config = app_config.get_config()
     system_prompt = request.system_prompt or server_config.system_prompt
     provider = request.provider or server_config.provider
 
-    logger.debug("Starter suggestions request | system_prompt_len=%d", len(system_prompt))
+    logger.debug(
+        "Starter suggestions request | client_type=%s system_prompt_len=%d",
+        client_type,
+        len(system_prompt),
+    )
     suggestions = await get_starter_suggestions(
         system_prompt=system_prompt,
         provider=provider,
         session_id=request.session_id,
+        client_type=client_type,
     )
     return StarterResponse(
         suggestions=suggestions,
-        model=resolve_model(request.session_id),
-        suggestions_model=resolve_suggestions_model(request.session_id),
+        model=resolve_model(request.session_id, client_type),
+        suggestions_model=resolve_suggestions_model(request.session_id, client_type),
     )
 
 
 @router.delete("/chat/{session_id}")
-async def delete_session(session_id: str) -> dict:
-    logger.info("Session cleared | session=%s", session_id)
+async def delete_session(
+    session_id: str,
+    x_client_type: str | None = Header(default=None),
+) -> dict:
+    client_type = _normalise_client_type(x_client_type)
+    trace.get_current_span().set_attribute("client.type", client_type)
+    logger.info("Session cleared | session=%s client_type=%s", session_id, client_type)
     clear_session(session_id)
     return {"cleared": session_id}

@@ -378,7 +378,10 @@ async def async_main() -> None:
     timeout = httpx.Timeout(60.0)
     tasks: list[asyncio.Task] = []
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        headers={"X-Client-Type": "load-gen"},
+    ) as client:
         # Optional duration-based stop
         if max_duration is not None:
             async def _duration_stopper() -> None:

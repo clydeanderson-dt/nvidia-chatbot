@@ -48,28 +48,46 @@ _self_hosted_nim_url = os.getenv("SELF_HOSTED_NIM_URL")
 _llm_cache: dict[tuple[str, str], ChatNVIDIA] = {}
 
 
-def _resolve_flag(flag_key: str, default: str, session_id: str | None) -> str:
+def _resolve_flag(
+    flag_key: str,
+    default: str,
+    session_id: str | None,
+    client_type: str | None = None,
+) -> str:
     """Resolve a string flag via OpenFeature with `session_id` as targeting key.
+
+    `client_type` (e.g. "web", "mobile", "load-gen") is forwarded as a
+    DevCycle custom attribute (`clientType`) so audiences can target by it.
 
     Falls back to `default` if OpenFeature is not initialised or evaluation fails.
     """
     try:
         client = get_openfeature_client()
-        ctx = EvaluationContext(targeting_key=session_id or "anonymous")
+        attributes: dict[str, str] = {}
+        if client_type:
+            attributes["clientType"] = client_type
+        ctx = EvaluationContext(
+            targeting_key=session_id or "anonymous",
+            attributes=attributes,
+        )
         return client.get_string_value(flag_key, default, ctx)
     except Exception as exc:
         logger.warning("Failed to resolve %s flag: %s", flag_key, exc)
         return default
 
 
-def resolve_model(session_id: str | None) -> str:
+def resolve_model(session_id: str | None, client_type: str | None = None) -> str:
     """Resolve the chat reply model via the `llm-model-chat` DevCycle flag."""
-    return _resolve_flag(_LLM_MODEL_CHAT_FLAG, _DEFAULT_MODEL, session_id)
+    return _resolve_flag(_LLM_MODEL_CHAT_FLAG, _DEFAULT_MODEL, session_id, client_type)
 
 
-def resolve_suggestions_model(session_id: str | None) -> str:
+def resolve_suggestions_model(
+    session_id: str | None, client_type: str | None = None
+) -> str:
     """Resolve the suggestions model via the `llm-model-suggestions` DevCycle flag."""
-    return _resolve_flag(_LLM_MODEL_SUGGESTIONS_FLAG, _DEFAULT_SUGGESTIONS_MODEL, session_id)
+    return _resolve_flag(
+        _LLM_MODEL_SUGGESTIONS_FLAG, _DEFAULT_SUGGESTIONS_MODEL, session_id, client_type
+    )
 
 
 def _get_llm(provider: str, model: str) -> ChatNVIDIA | None:
@@ -149,11 +167,14 @@ async def get_response(
     message: str,
     system_prompt: str,
     provider: str = "nim_api",
+    client_type: str | None = None,
 ) -> str:
     """Invoke the chain and return the assistant reply as a plain string."""
     span = _otel_trace.get_current_span()
     span.set_attribute("session.id", session_id)
-    model = resolve_model(session_id)
+    if client_type:
+        span.set_attribute("client.type", client_type)
+    model = resolve_model(session_id, client_type)
     span.set_attribute("llm.model", model)
     logger.info(
         "LLM request  | session=%s  model=%s  provider=%s  message_len=%d",
@@ -210,13 +231,17 @@ async def get_suggestions(
     reply: str,
     provider: str = "nim_api",
     session_id: str | None = None,
+    client_type: str | None = None,
 ) -> list[str]:
     """Generate 2-3 follow-up question suggestions for the last conversation turn.
 
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = resolve_suggestions_model(session_id)
-    _otel_trace.get_current_span().set_attribute("llm.model", model)
+    model = resolve_suggestions_model(session_id, client_type)
+    span = _otel_trace.get_current_span()
+    span.set_attribute("llm.model", model)
+    if client_type:
+        span.set_attribute("client.type", client_type)
     llm = _get_llm(provider, model)
     if llm is None:
         return []
@@ -255,14 +280,18 @@ async def get_starter_suggestions(
     system_prompt: str,
     provider: str = "nim_api",
     session_id: str | None = None,
+    client_type: str | None = None,
 ) -> list[str]:
     """Generate 3 opening question suggestions for a fresh session.
 
     Uses the system prompt to tailor suggestions to the assistant's role.
     Returns an empty list on any failure so the chat is never broken.
     """
-    model = resolve_suggestions_model(session_id)
-    _otel_trace.get_current_span().set_attribute("llm.model", model)
+    model = resolve_suggestions_model(session_id, client_type)
+    span = _otel_trace.get_current_span()
+    span.set_attribute("llm.model", model)
+    if client_type:
+        span.set_attribute("client.type", client_type)
     llm = _get_llm(provider, model)
     if llm is None:
         return []

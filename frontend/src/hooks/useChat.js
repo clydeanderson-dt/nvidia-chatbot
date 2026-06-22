@@ -47,7 +47,10 @@ export function useChat() {
       // Server uses its own config if we don't override
       const response = await fetch('/api/chat/starters', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Type': 'web',
+        },
         body: JSON.stringify({
           system_prompt: appConfig.system_prompt,
           provider: appConfig.provider,
@@ -100,7 +103,10 @@ export function useChat() {
         // Server uses its own config — we just send the session/message
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Type': 'web',
+          },
           body: JSON.stringify({
             session_id: sessionId,
             message: text.trim(),
@@ -155,7 +161,10 @@ export function useChat() {
 
   const clearHistory = useCallback(async () => {
     try {
-      await fetch(`/api/chat/${sessionId}`, { method: 'DELETE' });
+      await fetch(`/api/chat/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'X-Client-Type': 'web' },
+      });
     } catch (err) {
       console.error('Failed to clear server session:', err);
     }
