@@ -91,7 +91,12 @@ async def chat(request: ChatRequest) -> ChatResponse:
         system_prompt=system_prompt,
         provider=provider,
     )
-    suggestions = await get_suggestions(message=request.message, reply=reply, provider=provider)
+    suggestions = await get_suggestions(
+        message=request.message,
+        reply=reply,
+        provider=provider,
+        session_id=request.session_id,
+    )
     logger.info(
         "Chat response | session=%s reply_len=%d suggestions=%d",
         request.session_id,
@@ -109,7 +114,11 @@ async def chat_starters(request: StarterRequest) -> StarterResponse:
     provider = request.provider or server_config.provider
 
     logger.debug("Starter suggestions request | system_prompt_len=%d", len(system_prompt))
-    suggestions = await get_starter_suggestions(system_prompt=system_prompt, provider=provider)
+    suggestions = await get_starter_suggestions(
+        system_prompt=system_prompt,
+        provider=provider,
+        session_id=request.session_id,
+    )
     return StarterResponse(suggestions=suggestions)
 
 

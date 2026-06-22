@@ -89,6 +89,10 @@ class StarterRequest(BaseModel):
         default=None,
         description="LLM backend: 'nim_api' for NVIDIA NIM API, 'self_hosted' for self-hosted NIM (uses server config if not provided)",
     )
+    session_id: Optional[str] = Field(
+        default=None,
+        description="Session identifier used for feature-flag targeting so starter suggestions use the same LLM model as the chat session.",
+    )
 
 
 class StarterResponse(BaseModel):

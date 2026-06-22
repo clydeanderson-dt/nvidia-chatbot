@@ -38,6 +38,13 @@ for the plan and gotchas — file will eventually be deleted.)
   `.github/workflows/chaos.yml`) can mutate chaos state. Don't reintroduce
   `PATCH /api/chaos`, `POST /api/chaos/reset`, or
   `POST /api/chaos/preset/{name}` — they were intentionally removed.
+- **The active LLM model is resolved per session via the `llm-model`
+  DevCycle flag** (see `backend/services/llm.py:_resolve_model`). Targeting
+  key is the chat session ID, so a session sticks to one model across its
+  chat reply, follow-up suggestions, and starter suggestions. If you add
+  another LLM call path, pass `session_id` through and resolve via
+  `_resolve_model(session_id)` — don't reintroduce a hardcoded `_MODEL`
+  constant. Fallback default is `meta/llama-3.1-8b-instruct`.
 - **Traceloop init must come before FastAPI is imported in `main.py`.**
   Order is load-bearing; see `docs/opentelemetry-instrumentation.md` gotcha #2.
 - **CSS Modules only** in the React frontend (`.module.css`). No global CSS framework.
@@ -145,4 +152,19 @@ fetch spans, from:now() - 15m
             flag_reason = span.events[`feature_flag.result.reason`]
 | summarize evaluations = count(), by:{flag_key, flag_value, flag_reason}
 | sort evaluations desc
+```
+
+### LLM model A/B test (`llm-model` flag)
+
+The resolved model is also written to the `llm.model` span attribute on
+`chat_response.workflow` spans. To compare latency by model variation:
+
+```
+fetch spans, from:now() - 1h
+| filter dt.service.name == "nvidia-chatbot"
+| filter span.name == "chat_response.workflow"
+| filter isNotNull(llm.model)
+| summarize {requests = count(), p95_ms = percentile(duration, 95) / 1000000},
+            by:{llm.model}
+| sort requests desc
 ```

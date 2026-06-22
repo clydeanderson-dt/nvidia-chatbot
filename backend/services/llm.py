@@ -20,30 +20,74 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from openfeature.evaluation_context import EvaluationContext
 from traceloop.sdk.decorators import task, workflow
 
 from services import chaos
+from services.feature_flags import get_openfeature_client
 
 # Repo-root .env — see backend/main.py for the rationale.
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 logger = logging.getLogger("chatbot.llm")
 
-_MODEL = "meta/llama-3.1-8b-instruct"
+# Fallback model used when the `llm-model` DevCycle flag cannot be evaluated
+# (e.g. DevCycle SDK not initialised, flag missing, or self-hosted NIM where
+# the model is fixed by the deployed container).
+_DEFAULT_MODEL = "meta/llama-3.1-8b-instruct"
+_LLM_MODEL_FLAG = "llm-model"
 
 # ── LLM client initialisation ─────────────────────────────────────────────────
 _nvidia_api_key = os.getenv("NVIDIA_API_KEY")
 _self_hosted_nim_url = os.getenv("SELF_HOSTED_NIM_URL")
 
-_llms: dict[str, ChatNVIDIA] = {}
-if _nvidia_api_key:
-    _llms["nim_api"] = ChatNVIDIA(model=_MODEL, api_key=_nvidia_api_key)
-if _self_hosted_nim_url:
-    _llms["self_hosted"] = ChatNVIDIA(
-        model=_MODEL,
-        base_url=f"{_self_hosted_nim_url.rstrip('/')}/v1",
-        api_key="not-required",
-    )
+# Cache of ChatNVIDIA instances keyed by (provider, model). Instances are
+# created lazily on first use so we don't pay the cost for unused variations.
+_llm_cache: dict[tuple[str, str], ChatNVIDIA] = {}
+
+
+def _resolve_model(session_id: str | None) -> str:
+    """Resolve the model ID for a session via the `llm-model` DevCycle flag.
+
+    Uses `session_id` as the OpenFeature targeting key so each session sticks
+    to one model across requests. Falls back to `_DEFAULT_MODEL` if OpenFeature
+    is not initialised or evaluation fails.
+    """
+    try:
+        client = get_openfeature_client()
+        ctx = EvaluationContext(targeting_key=session_id or "anonymous")
+        return client.get_string_value(_LLM_MODEL_FLAG, _DEFAULT_MODEL, ctx)
+    except Exception as exc:
+        logger.warning("Failed to resolve %s flag: %s", _LLM_MODEL_FLAG, exc)
+        return _DEFAULT_MODEL
+
+
+def _get_llm(provider: str, model: str) -> ChatNVIDIA | None:
+    """Return a cached ChatNVIDIA client for (provider, model), or None if the
+    provider is not configured.
+
+    Self-hosted NIM serves a single model from its deployed container, so the
+    `model` argument is ignored for that provider and the default is used.
+    """
+    if provider == "nim_api":
+        if not _nvidia_api_key:
+            return None
+        key = (provider, model)
+        if key not in _llm_cache:
+            _llm_cache[key] = ChatNVIDIA(model=model, api_key=_nvidia_api_key)
+        return _llm_cache[key]
+    if provider == "self_hosted":
+        if not _self_hosted_nim_url:
+            return None
+        key = (provider, _DEFAULT_MODEL)
+        if key not in _llm_cache:
+            _llm_cache[key] = ChatNVIDIA(
+                model=_DEFAULT_MODEL,
+                base_url=f"{_self_hosted_nim_url.rstrip('/')}/v1",
+                api_key="not-required",
+            )
+        return _llm_cache[key]
+    return None
 
 # In-memory session store: { session_id -> ChatMessageHistory }
 _session_store: dict[str, ChatMessageHistory] = {}
@@ -60,9 +104,9 @@ def clear_session(session_id: str) -> None:
     _session_store.pop(session_id, None)
 
 
-def _build_chain(system_prompt: str, provider: str = "nim_api"):
-    """Build a RunnableWithMessageHistory chain for the given system prompt and provider."""
-    llm = _llms.get(provider)
+def _build_chain(system_prompt: str, provider: str, model: str):
+    """Build a RunnableWithMessageHistory chain for the given system prompt, provider, and model."""
+    llm = _get_llm(provider, model)
     if llm is None:
         if provider == "nim_api":
             raise RuntimeError("NVIDIA_API_KEY is not set in the environment.")
@@ -99,10 +143,12 @@ async def get_response(
     """Invoke the chain and return the assistant reply as a plain string."""
     span = _otel_trace.get_current_span()
     span.set_attribute("session.id", session_id)
+    model = _resolve_model(session_id)
+    span.set_attribute("llm.model", model)
     logger.info(
         "LLM request  | session=%s  model=%s  provider=%s  message_len=%d",
         session_id,
-        _MODEL,
+        model,
         provider,
         len(message),
     )
@@ -118,7 +164,7 @@ async def get_response(
         span.set_attribute("chaos.delay_ms", delay_ms)
         span.set_attribute("chaos.injected", True)
 
-    chain = _build_chain(system_prompt, provider)
+    chain = _build_chain(system_prompt, provider, model)
     config = {"configurable": {"session_id": session_id}}
     start = time.perf_counter()
 
@@ -149,12 +195,18 @@ async def get_response(
 
 
 @task(name="chat_suggestions")
-async def get_suggestions(message: str, reply: str, provider: str = "nim_api") -> list[str]:
+async def get_suggestions(
+    message: str,
+    reply: str,
+    provider: str = "nim_api",
+    session_id: str | None = None,
+) -> list[str]:
     """Generate 2-3 follow-up question suggestions for the last conversation turn.
 
     Returns an empty list on any failure so the chat is never broken.
     """
-    llm = _llms.get(provider)
+    model = _resolve_model(session_id)
+    llm = _get_llm(provider, model)
     if llm is None:
         return []
 
@@ -188,13 +240,18 @@ async def get_suggestions(message: str, reply: str, provider: str = "nim_api") -
 
 
 @task(name="chat_starter_suggestions")
-async def get_starter_suggestions(system_prompt: str, provider: str = "nim_api") -> list[str]:
+async def get_starter_suggestions(
+    system_prompt: str,
+    provider: str = "nim_api",
+    session_id: str | None = None,
+) -> list[str]:
     """Generate 3 opening question suggestions for a fresh session.
 
     Uses the system prompt to tailor suggestions to the assistant's role.
     Returns an empty list on any failure so the chat is never broken.
     """
-    llm = _llms.get(provider)
+    model = _resolve_model(session_id)
+    llm = _get_llm(provider, model)
     if llm is None:
         return []
 

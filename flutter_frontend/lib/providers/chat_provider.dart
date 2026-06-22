@@ -128,6 +128,7 @@ class ChatProvider extends ChangeNotifier {
       final response = await _api.postStarters(StarterRequest(
         systemPrompt: systemPrompt,
         provider: llmProvider,
+        sessionId: sessionId,
       ));
       suggestions = response.suggestions;
     } catch (e) {

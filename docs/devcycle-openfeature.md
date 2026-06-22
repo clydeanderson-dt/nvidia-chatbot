@@ -67,6 +67,41 @@ to **All Users** (the demo treats the whole app as production).
 
 ---
 
+## Other features
+
+In addition to `chaos-preset`, the backend reads these features via OpenFeature:
+
+### `llm-model` — A/B test of the underlying LLM
+
+A **String** flag whose value is the NVIDIA NIM model ID (e.g.
+`meta/llama-3.1-8b-instruct`) used to instantiate `ChatNVIDIA` for a given
+session. Evaluated in `backend/services/llm.py` with
+`EvaluationContext(targeting_key=session_id)`, so each session is sticky to a
+single variation across all calls (chat reply, follow-up suggestions, and
+starter suggestions).
+
+| Variation key | Model ID |
+|---|---|
+| `control` | `meta/llama-3.1-8b-instruct` |
+| `llama-3-2-3b` | `meta/llama-3.2-3b-instruct` |
+| `gemma-3-12b` | `google/gemma-3-12b-it` |
+| `llama-3-3-70b` | `meta/llama-3.3-70b-instruct` |
+| `phi-4-mini` | `microsoft/phi-4-mini-instruct` |
+
+Production targeting splits evenly (20% each) across all variations, bucketed
+by `user_id` (the chat session ID). If DevCycle isn't initialised or
+evaluation fails, the backend falls back to `_DEFAULT_MODEL`
+(`meta/llama-3.1-8b-instruct`) — chat continues to work.
+
+`ChatNVIDIA` instances are cached per `(provider, model)` so each variation
+incurs only one client construction. The resolved model is written to the
+`llm.model` span attribute on each request for Dynatrace analysis.
+
+Note: the `self_hosted` provider ignores this flag — its model is fixed by
+the deployed NIM container.
+
+---
+
 ## End-to-end flow
 
 ```

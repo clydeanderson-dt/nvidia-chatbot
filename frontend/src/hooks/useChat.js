@@ -41,6 +41,7 @@ export function useChat() {
 body: JSON.stringify({
         system_prompt: appConfig.system_prompt,
         provider: appConfig.provider,
+        session_id: sessionId,
       }),
     });
     if (!response.ok) return;
@@ -49,7 +50,7 @@ body: JSON.stringify({
   } catch {
     // Starter suggestions are best-effort — never break the UI.
   }
-}, [appConfig.system_prompt, appConfig.provider]);
+}, [appConfig.system_prompt, appConfig.provider, sessionId]);
 
   // Fetch starter suggestions on mount and when app config changes,
   // but only while no conversation is in progress.
