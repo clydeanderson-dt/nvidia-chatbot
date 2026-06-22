@@ -33,26 +33,33 @@ export function useChat() {
   // Get config from context (server-side configuration)
   const { appConfig, refreshChaosConfig } = useConfig();
 
+  // Bumped whenever the user sends a message or history is cleared.
+  // A late starter response with a stale id is discarded so it can't
+  // overwrite the follow-up suggestions from /api/chat.
+  const starterGenerationRef = useRef(0);
+
   const fetchStarterSuggestions = useCallback(async () => {
+    const generation = ++starterGenerationRef.current;
     try {
       // Server uses its own config if we don't override
       const response = await fetch('/api/chat/starters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-        system_prompt: appConfig.system_prompt,
-        provider: appConfig.provider,
-        session_id: sessionId,
-      }),
-    });
-    if (!response.ok) return;
-    const data = await response.json();
-    setSuggestions(data.suggestions ?? []);
-    if (data.model) setModel(data.model);
-  } catch {
-    // Starter suggestions are best-effort — never break the UI.
-  }
-}, [appConfig.system_prompt, appConfig.provider, sessionId]);
+        body: JSON.stringify({
+          system_prompt: appConfig.system_prompt,
+          provider: appConfig.provider,
+          session_id: sessionId,
+        }),
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (generation !== starterGenerationRef.current) return; // superseded
+      setSuggestions(data.suggestions ?? []);
+      if (data.model) setModel(data.model);
+    } catch {
+      // Starter suggestions are best-effort — never break the UI.
+    }
+  }, [appConfig.system_prompt, appConfig.provider, sessionId]);
 
   // Fetch starter suggestions on mount and when app config changes,
   // but only while no conversation is in progress.
@@ -65,6 +72,10 @@ body: JSON.stringify({
   const sendMessage = useCallback(
     async (text) => {
       if (!text.trim() || isStreaming) return;
+
+      // Invalidate any in-flight starter fetch so its late response
+      // can't clobber the follow-up suggestions from this chat reply.
+      starterGenerationRef.current += 1;
 
       // Clear stale suggestions immediately so the old chips disappear.
       setSuggestions([]);

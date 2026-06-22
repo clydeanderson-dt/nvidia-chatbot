@@ -17,6 +17,11 @@ class ChatProvider extends ChangeNotifier {
   bool isSuggestionsLoading = false;
   String? model;
 
+  // Bumped whenever the user sends a message or history is cleared.
+  // A late starter response with a stale generation is discarded so it
+  // can't overwrite the follow-up suggestions from /api/chat.
+  int _starterGeneration = 0;
+
   // Reference to ConfigProvider for system prompt and LLM provider
   ConfigProvider? _configProvider;
 
@@ -46,6 +51,10 @@ class ChatProvider extends ChangeNotifier {
     
     final trimmed = text.trim();
     if (trimmed.isEmpty || isStreaming) return;
+
+    // Invalidate any in-flight starter fetch so its late response
+    // can't clobber the follow-up suggestions from this chat reply.
+    _starterGeneration++;
 
     suggestions = [];
     messages.add(ChatMessage(role: 'user', content: trimmed));
@@ -123,6 +132,7 @@ class ChatProvider extends ChangeNotifier {
 
     // DynatraceRootAction webAction = Dynatrace().enterAction('Generate initial suggestions');
 
+    final generation = ++_starterGeneration;
     isSuggestionsLoading = true;
     notifyListeners();
     
@@ -132,14 +142,17 @@ class ChatProvider extends ChangeNotifier {
         provider: llmProvider,
         sessionId: sessionId,
       ));
+      if (generation != _starterGeneration) return; // superseded
       suggestions = response.suggestions;
       if (response.model != null) model = response.model;
     } catch (e) {
       // Starter suggestions are best-effort.
     }
     finally {
-        isSuggestionsLoading = false;
-        notifyListeners();
+        if (generation == _starterGeneration) {
+          isSuggestionsLoading = false;
+          notifyListeners();
+        }
         
         // Dynatrace RUM (Classic) - not necessary for RUM on Grail
         // https://pub.dev/packages/dynatrace_flutter_plugin#create-custom-actions
