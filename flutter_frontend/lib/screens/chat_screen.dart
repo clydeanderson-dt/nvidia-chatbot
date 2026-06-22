@@ -59,29 +59,19 @@ class _ChatScreenState extends State<ChatScreen> with RouteAware {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
+        toolbarHeight: (chat.model != null || chat.suggestionsModel != null) ? 84 : kToolbarHeight,
+        title: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'AI Chatbot',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
-            if (chat.model != null) ...[
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  chat.model!,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'monospace',
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                ),
-              ),
+            if (chat.model != null || chat.suggestionsModel != null) ...[
+              const SizedBox(height: 4),
+              _ModelRow(label: 'chat', value: chat.model),
+              _ModelRow(label: 'suggestions', value: chat.suggestionsModel),
             ],
           ],
         ),
@@ -149,6 +139,54 @@ class _ChatScreenState extends State<ChatScreen> with RouteAware {
           InputBar(
             onSend: chat.sendMessage,
             isStreaming: chat.isStreaming,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModelRow extends StatelessWidget {
+  const _ModelRow({required this.label, required this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          SizedBox(
+            width: 76,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          Flexible(
+            child: Tooltip(
+              message: '$label model: $value',
+              child: Text(
+                value!,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'monospace',
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ),
           ),
         ],
       ),

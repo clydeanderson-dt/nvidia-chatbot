@@ -16,6 +16,7 @@ class ChatProvider extends ChangeNotifier {
   List<String> suggestions = [];
   bool isSuggestionsLoading = false;
   String? model;
+  String? suggestionsModel;
 
   // Bumped whenever the user sends a message or history is cleared.
   // A late starter response with a stale generation is discarded so it
@@ -71,6 +72,7 @@ class ChatProvider extends ChangeNotifier {
       ));
       messages.last.content = response.reply;
       if (response.model != null) model = response.model;
+      if (response.suggestionsModel != null) suggestionsModel = response.suggestionsModel;
       
       // Set loading state and fetch suggestions
       isSuggestionsLoading = true;
@@ -145,6 +147,7 @@ class ChatProvider extends ChangeNotifier {
       if (generation != _starterGeneration) return; // superseded
       suggestions = response.suggestions;
       if (response.model != null) model = response.model;
+      if (response.suggestionsModel != null) suggestionsModel = response.suggestionsModel;
     } catch (e) {
       // Starter suggestions are best-effort.
     }
