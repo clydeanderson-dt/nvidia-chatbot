@@ -28,6 +28,7 @@ export function useChat() {
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [model, setModel] = useState(null);
 
   // Get config from context (server-side configuration)
@@ -40,6 +41,7 @@ export function useChat() {
 
   const fetchStarterSuggestions = useCallback(async () => {
     const generation = ++starterGenerationRef.current;
+    setIsSuggestionsLoading(true);
     try {
       // Server uses its own config if we don't override
       const response = await fetch('/api/chat/starters', {
@@ -58,6 +60,10 @@ export function useChat() {
       if (data.model) setModel(data.model);
     } catch {
       // Starter suggestions are best-effort — never break the UI.
+    } finally {
+      if (generation === starterGenerationRef.current) {
+        setIsSuggestionsLoading(false);
+      }
     }
   }, [appConfig.system_prompt, appConfig.provider, sessionId]);
 
@@ -157,5 +163,5 @@ export function useChat() {
     refreshChaosConfig();
   }, [sessionId, fetchStarterSuggestions, refreshChaosConfig]);
 
-  return { messages, isStreaming, suggestions, model, sendMessage, clearHistory };
+  return { messages, isStreaming, suggestions, isSuggestionsLoading, model, sendMessage, clearHistory };
 }

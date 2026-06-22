@@ -8,7 +8,7 @@ import { SuggestionChips } from '../components/SuggestionChips';
 import styles from './ChatPage.module.css';
 
 export function ChatPage() {
-  const { messages, isStreaming, suggestions, model, sendMessage, clearHistory } = useChat();
+  const { messages, isStreaming, suggestions, isSuggestionsLoading, model, sendMessage, clearHistory } = useChat();
   const { isAnyChaosActive, refreshChaosConfig } = useConfig();
 
   // Refresh chaos config when page loads
@@ -46,7 +46,11 @@ export function ChatPage() {
 
       <ChatWindow messages={messages} isStreaming={isStreaming} />
 
-      <SuggestionChips suggestions={suggestions} onSelect={sendMessage} />
+      <SuggestionChips
+        suggestions={suggestions}
+        isLoading={isSuggestionsLoading}
+        onSelect={sendMessage}
+      />
 
       <InputBar onSend={sendMessage} isStreaming={isStreaming} />
     </div>
