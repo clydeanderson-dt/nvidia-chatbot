@@ -14,16 +14,16 @@
       ]
     },
     {
-      "version": 2,
-      "key": "Model",
-      "type": "query",
-      "visible": true,
-      "editable": true,
-      "input": "fetch spans, from:now() - 6h\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter isNotNull(`llm.model`)\n| dedup `llm.model`\n| fields `llm.model`\n| sort `llm.model` asc",
-      "multiple": true,
       "defaultValue": [
         "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
-      ]
+      ],
+      "editable": true,
+      "input": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter isNotNull(`llm.model`)\n| dedup `llm.model`\n| fields `llm.model`\n| sort `llm.model` asc",
+      "key": "Model",
+      "multiple": true,
+      "type": "query",
+      "version": 2,
+      "visible": true
     },
     {
       "defaultValue": "0.10",
@@ -233,18 +233,16 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| summarize {requests = count(), p50_ms = percentile(duration, 50) / 1000000.0, p95_ms = percentile(duration, 95) / 1000000.0, p99_ms = percentile(duration, 99) / 1000000.0, err_pct = (toDouble(countIf(request.is_failed == true)) / toDouble(count())) * 100.0}, by:{model = `llm.model`}\n| sort requests desc",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "Leaderboard — performance per model",
       "type": "data",
       "visualization": "table",
-      "visualizationSettings": {
-        "table": {}
-      }
+      "visualizationSettings": {}
     },
     "10": {
       "content": "## 📈 Time trends per model\nOne series per `llm.model`. Useful for spotting rollout cutovers (request-rate steps) and steady-state vs spike latency.",
@@ -258,33 +256,33 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| makeTimeseries p95 = percentile(duration, 95), by:{model = `llm.model`}",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "p95 latency over time by model",
       "type": "data",
       "visualization": "lineChart",
       "visualizationSettings": {
+        "chartSettings": {
+          "curve": "smooth",
+          "gapPolicy": "connect"
+        },
         "unitsOverrides": [
           {
-            "identifier": "p95",
-            "unitCategory": "time",
+            "added": 1782159454426,
             "baseUnit": "nanosecond",
-            "displayUnit": null,
-            "decimals": null,
-            "suffix": "",
-            "delimiter": false,
             "cascade": null,
-            "added": 1782159454426
+            "decimals": null,
+            "delimiter": false,
+            "displayUnit": null,
+            "identifier": "p95",
+            "suffix": "",
+            "unitCategory": "time"
           }
-        ],
-        "chartSettings": {
-          "gapPolicy": "connect",
-          "curve": "smooth"
-        }
+        ]
       }
     },
     "12": {
@@ -314,19 +312,19 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| makeTimeseries {errors = countIf(request.is_failed == true), requests = count()}",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "Error count over time by model",
       "type": "data",
       "visualization": "lineChart",
       "visualizationSettings": {
         "chartSettings": {
-          "gapPolicy": "connect",
-          "curve": "smooth"
+          "curve": "smooth",
+          "gapPolicy": "connect"
         }
       }
     },
@@ -338,11 +336,11 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| fieldsAdd record_cost = (toDouble(gen_ai.usage.input_tokens) / 1000000.0) * $PriceIn:noquote + (toDouble(gen_ai.usage.output_tokens) / 1000000.0) * $PriceOut:noquote\n| makeTimeseries cost_usd = sum(record_cost), by:{model = gen_ai.request.model}",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "Estimated cost over time by model (USD)",
       "type": "data",
@@ -425,18 +423,19 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter (span.name == \"chat_response.workflow\" and in(\"Chat\", array($CallType))) or (in(span.name, {\"chat_suggestions.task\",\"chat_starter_suggestions.task\"}) and in(\"Suggestions\", array($CallType)))\n| filter in(`llm.model`, array($Model))\n| fieldsAdd traffic_class = if(in(`client.type`, {\"web\",\"mobile\"}), \"real\", else: if(`client.type` == \"load-gen\", \"synthetic\", else: \"unknown\"))\n| makeTimeseries p95 = percentile(duration, 95), by:{model = `llm.model`, traffic_class}",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "Real-vs-synthetic p95 over time (per model)",
       "type": "data",
       "visualization": "lineChart",
       "visualizationSettings": {
-        "coloring": {
-          "thresholdRules": []
+        "chartSettings": {
+          "curve": "smooth",
+          "gapPolicy": "connect"
         },
         "unitsOverrides": [
           {
@@ -450,11 +449,7 @@
             "cascade": null,
             "added": 1782159510833
           }
-        ],
-        "chartSettings": {
-          "gapPolicy": "connect",
-          "curve": "smooth"
-        }
+        ]
       }
     },
     "20": {
@@ -469,18 +464,16 @@
       },
       "query": "fetch spans\n| filter dt.service.name == \"nvidia-chatbot\"\n| filter span.name == \"ChatNVIDIA.chat\"\n| filter isNotNull(gen_ai.usage.input_tokens)\n| filter in(gen_ai.request.model, array($Model))\n| summarize {calls = count(), in_tok = sum(gen_ai.usage.input_tokens), out_tok = sum(gen_ai.usage.output_tokens), avg_in = avg(gen_ai.usage.input_tokens), avg_out = avg(gen_ai.usage.output_tokens), tok_per_sec = avg(toDouble(gen_ai.usage.output_tokens) / (toDouble(duration) / 1000000000.0))}, by:{model = gen_ai.request.model}\n| fieldsAdd cost_usd = (toDouble(in_tok) / 1000000.0) * $PriceIn:noquote + (toDouble(out_tok) / 1000000.0) * $PriceOut:noquote\n| fieldsAdd cost_per_call_usd = cost_usd / toDouble(calls)\n| sort cost_usd desc",
       "querySettings": {
-        "maxResultRecords": 1000,
-        "defaultScanLimitGbytes": 500,
-        "maxResultMegaBytes": 1,
         "defaultSamplingRatio": 10,
-        "enableSampling": false
+        "defaultScanLimitGbytes": 500,
+        "enableSampling": false,
+        "maxResultMegaBytes": 1,
+        "maxResultRecords": 1000
       },
       "title": "Tokens & cost per model",
       "type": "data",
       "visualization": "table",
-      "visualizationSettings": {
-        "table": {}
-      }
+      "visualizationSettings": {}
     },
     "22": {
       "davis": {
@@ -616,107 +609,107 @@
       "x": 0,
       "y": 8,
       "w": 24,
-      "h": 10
+      "h": 6
     },
     "10": {
       "x": 0,
-      "y": 18,
+      "y": 14,
       "w": 24,
       "h": 2
     },
     "11": {
       "x": 0,
-      "y": 20,
+      "y": 16,
       "w": 12,
       "h": 8
     },
     "12": {
       "x": 12,
-      "y": 20,
+      "y": 16,
       "w": 12,
       "h": 8
     },
     "13": {
       "x": 0,
-      "y": 28,
+      "y": 24,
       "w": 12,
       "h": 8
     },
     "14": {
       "x": 12,
-      "y": 28,
+      "y": 24,
       "w": 12,
       "h": 8
     },
     "15": {
       "x": 0,
-      "y": 36,
+      "y": 32,
       "w": 24,
       "h": 2
     },
     "16": {
       "x": 0,
-      "y": 38,
+      "y": 34,
       "w": 12,
       "h": 8
     },
     "17": {
       "x": 12,
-      "y": 38,
+      "y": 34,
       "w": 12,
       "h": 8
     },
     "18": {
       "x": 0,
-      "y": 46,
+      "y": 42,
       "w": 12,
       "h": 8
     },
     "19": {
       "x": 12,
-      "y": 46,
+      "y": 42,
       "w": 12,
       "h": 8
     },
     "20": {
       "x": 0,
-      "y": 54,
+      "y": 50,
       "w": 24,
       "h": 2
     },
     "21": {
       "x": 0,
-      "y": 56,
+      "y": 52,
       "w": 24,
       "h": 10
     },
     "22": {
       "x": 0,
-      "y": 66,
+      "y": 62,
       "w": 12,
       "h": 8
     },
     "23": {
       "x": 12,
-      "y": 66,
+      "y": 62,
       "w": 12,
       "h": 8
     },
     "29": {
       "x": 0,
-      "y": 74,
+      "y": 70,
       "w": 24,
       "h": 2
     },
     "30": {
       "x": 0,
-      "y": 76,
+      "y": 72,
       "w": 12,
       "h": 8
     },
     "31": {
       "x": 12,
-      "y": 76,
+      "y": 72,
       "w": 12,
       "h": 8
     }
@@ -729,15 +722,19 @@
   },
   "annotations": [
     {
+      "key": "2d48254e-028e-4e57-9555-0781655106e4",
+      "name": "Chaos Engineering: Enabled",
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"active\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "displaySettings": {
+        "color": "var(--dt-colors-charts-loglevel-error-default, #cd3741)",
+        "referenceIds": [
+          "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+        ],
+        "pinned": false
+      },
+      "type": "query",
+      "version": 2,
       "dataMapping": {
-        "description": {
-          "field": "event.description",
-          "type": "string"
-        },
-        "end": {
-          "field": "event.end",
-          "type": "timestamp"
-        },
         "name": {
           "field": "event.name",
           "type": "string"
@@ -745,22 +742,7 @@
         "start": {
           "field": "event.start",
           "type": "timestamp"
-        }
-      },
-      "displaySettings": {
-        "color": "var(--dt-colors-charts-loglevel-error-default, #cd3741)",
-        "referenceIds": [
-          "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
-        ]
-      },
-      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"active\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
-      "key": "chaos-enabled-annotation",
-      "name": "Chaos Engineering Enabled",
-      "type": "query",
-      "version": 2
-    },
-    {
-      "dataMapping": {
+        },
         "description": {
           "field": "event.description",
           "type": "string"
@@ -768,13 +750,28 @@
         "end": {
           "field": "event.end",
           "type": "timestamp"
-        },
+        }
+      }
+    },
+    {
+      "key": "2fcc5c2d-4897-4363-8ee1-701658c243a2",
+      "name": "Chaos Engineering: Disabled",
+      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"inactive\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
+      "dataMapping": {
         "name": {
-          "field": "preset",
+          "field": "event.name",
+          "type": "string"
+        },
+        "description": {
+          "field": "event.description",
           "type": "string"
         },
         "start": {
           "field": "event.start",
+          "type": "timestamp"
+        },
+        "end": {
+          "field": "event.end",
           "type": "timestamp"
         }
       },
@@ -782,11 +779,9 @@
         "color": "var(--dt-colors-charts-apdex-excellent-default, #2a7453)",
         "referenceIds": [
           "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
-        ]
+        ],
+        "pinned": false
       },
-      "input": "fetch events, from:now()-7d\n| filter dt.entity.service.name == \"nvidia-chatbot\"\n| filter isNotNull(chaos.preset)\n| filter chaos.state == \"inactive\"\n| parse event.name, \"'Chaos Engineering: ' LD:preset\"",
-      "key": "chaos-disabled-annotation",
-      "name": "Chaos Engineering Disabled",
       "type": "query",
       "version": 2
     }
