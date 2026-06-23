@@ -1,0 +1,388 @@
+id: 9c545216-e155-448e-b81a-63348b10db02
+title: AI Chatbot — Weekly Model Optimization Report
+description: Weekly model-distribution recommendation for the AI Chatbot. Each task answers one focused question (single-responsibility); Davis CoPilot synthesizes the recommendation across cost, latency, throughput, stability, and SLO compliance for both the chat and suggestions workloads.
+actor: 4553845d-739e-46b5-8976-fdfc833cab12
+owner: 4553845d-739e-46b5-8976-fdfc833cab12
+ownerType: USER
+isPrivate: false
+isDeployed: true
+schemaVersion: 4
+type: STANDARD
+hourlyExecutionLimit: 1000
+triggerType: Schedule
+trigger:
+  schedule:
+    filterParameters:
+      earliestStart: "2026-06-23"
+    inputs: {}
+    isActive: true
+    isFaulty: false
+    rule: null
+    timezone: America/New_York
+    trigger:
+      type: cron
+      cron: "0 8 * * 1"
+tasks:
+  # ─────────────────────────────────────────────────────────────
+  # CHAT workload (chat_response.workflow)
+  # ─────────────────────────────────────────────────────────────
+
+  chat_workflow_scorecard:
+    action: dynatrace.automations:execute-dql-query
+    description: Chat workflow per-model scorecard for the last 7 days — request count, latency percentiles, error rate.
+    name: chat_workflow_scorecard
+    position: { x: -6, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "chat_response.workflow"
+        | filter isNotNull(llm.model)
+        | summarize {
+            requests = count(),
+            errors = countIf(request.is_failed == true),
+            p50_ms = percentile(toLong(duration), 50) / 1000000,
+            p95_ms = percentile(toLong(duration), 95) / 1000000,
+            p99_ms = percentile(toLong(duration), 99) / 1000000
+          }, by: { model = llm.model }
+        | fieldsAdd error_rate_pct = round((toDouble(errors) / toDouble(requests)) * 100.0, decimals: 2)
+        | sort requests desc
+
+  chat_workflow_scorecard_prior:
+    action: dynatrace.automations:execute-dql-query
+    description: Chat workflow per-model scorecard for the prior 7 days (week-over-week baseline).
+    name: chat_workflow_scorecard_prior
+    position: { x: -6, y: 2 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-14d, to: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "chat_response.workflow"
+        | filter isNotNull(llm.model)
+        | summarize {
+            requests = count(),
+            errors = countIf(request.is_failed == true),
+            p50_ms = percentile(toLong(duration), 50) / 1000000,
+            p95_ms = percentile(toLong(duration), 95) / 1000000,
+            p99_ms = percentile(toLong(duration), 99) / 1000000
+          }, by: { model = llm.model }
+        | fieldsAdd error_rate_pct = round((toDouble(errors) / toDouble(requests)) * 100.0, decimals: 2)
+        | sort requests desc
+
+  chat_llm_economics:
+    action: dynatrace.automations:execute-dql-query
+    description: Chat per-model token usage and cost for the last 7 days. Pricing inlined at USD 0.10 / 1M input tokens and USD 0.40 / 1M output tokens.
+    name: chat_llm_economics
+    position: { x: -4, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "ChatNVIDIA.chat"
+        | filter isNotNull(gen_ai.usage.input_tokens)
+        | fieldsAdd join_key = span.parent_id
+        | join [
+            fetch spans, from: now()-7d
+            | filter dt.service.name == "nvidia-chatbot"
+            | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+            | fieldsAdd join_key = span.id
+          ], on: { join_key }, kind: leftOuter
+        | filter isNotNull(right.span.name) != true
+        | summarize {
+            calls = count(),
+            in_tokens = sum(gen_ai.usage.input_tokens),
+            out_tokens = sum(gen_ai.usage.output_tokens),
+            avg_in_tokens = round(avg(gen_ai.usage.input_tokens)),
+            avg_out_tokens = round(avg(gen_ai.usage.output_tokens))
+          }, by: { model = gen_ai.request.model }
+        | fieldsAdd cost_usd = round((toDouble(in_tokens) / 1000000.0) * 0.10 + (toDouble(out_tokens) / 1000000.0) * 0.40, decimals: 4)
+        | fieldsAdd cost_per_call_usd = round(cost_usd / toDouble(calls), decimals: 6)
+        | fieldsAdd cost_per_1k_out_usd = if(toDouble(out_tokens) > 0, round(cost_usd / (toDouble(out_tokens) / 1000.0), decimals: 6), else: 0.0)
+        | sort calls desc
+
+  chat_throughput:
+    action: dynatrace.automations:execute-dql-query
+    description: Chat per-model throughput — average output tokens per second for the last 7 days.
+    name: chat_throughput
+    position: { x: -2, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "ChatNVIDIA.chat"
+        | filter isNotNull(gen_ai.usage.output_tokens)
+        | filter toLong(duration) > 0
+        | fieldsAdd join_key = span.parent_id
+        | join [
+            fetch spans, from: now()-7d
+            | filter dt.service.name == "nvidia-chatbot"
+            | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+            | fieldsAdd join_key = span.id
+          ], on: { join_key }, kind: leftOuter
+        | filter isNotNull(right.span.name) != true
+        | fieldsAdd tps = toDouble(gen_ai.usage.output_tokens) / (toDouble(duration) / 1000000000.0)
+        | summarize avg_tokens_per_sec = round(avg(tps), decimals: 1), by: { model = gen_ai.request.model }
+        | sort avg_tokens_per_sec desc
+
+  chat_slo_compliance:
+    action: dynatrace.automations:execute-dql-query
+    description: Chat per-model SLO compliance for the last 7 days — percentage of workflow requests completing under 3000 ms.
+    name: chat_slo_compliance
+    position: { x: 0, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "chat_response.workflow"
+        | filter isNotNull(llm.model)
+        | fieldsAdd under_slo = if(toLong(duration) < 3000000000, 1, else: 0)
+        | summarize {
+            requests = count(),
+            under_slo = sum(under_slo)
+          }, by: { model = llm.model }
+        | fieldsAdd slo_pct = round((toDouble(under_slo) / toDouble(requests)) * 100.0, decimals: 1)
+        | fields model, requests, slo_pct
+        | sort slo_pct desc
+
+  # ─────────────────────────────────────────────────────────────
+  # SUGGESTIONS workload (chat_suggestions.task + chat_starter_suggestions.task)
+  # ─────────────────────────────────────────────────────────────
+
+  suggestions_workflow_scorecard:
+    action: dynatrace.automations:execute-dql-query
+    description: Suggestions workflow per-model scorecard for the last 7 days — request count, latency percentiles, error rate.
+    name: suggestions_workflow_scorecard
+    position: { x: 2, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+        | filter isNotNull(llm.model)
+        | summarize {
+            requests = count(),
+            errors = countIf(request.is_failed == true),
+            p50_ms = percentile(toLong(duration), 50) / 1000000,
+            p95_ms = percentile(toLong(duration), 95) / 1000000,
+            p99_ms = percentile(toLong(duration), 99) / 1000000
+          }, by: { model = llm.model }
+        | fieldsAdd error_rate_pct = round((toDouble(errors) / toDouble(requests)) * 100.0, decimals: 2)
+        | sort requests desc
+
+  suggestions_workflow_scorecard_prior:
+    action: dynatrace.automations:execute-dql-query
+    description: Suggestions workflow per-model scorecard for the prior 7 days (week-over-week baseline).
+    name: suggestions_workflow_scorecard_prior
+    position: { x: 2, y: 2 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-14d, to: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+        | filter isNotNull(llm.model)
+        | summarize {
+            requests = count(),
+            errors = countIf(request.is_failed == true),
+            p50_ms = percentile(toLong(duration), 50) / 1000000,
+            p95_ms = percentile(toLong(duration), 95) / 1000000,
+            p99_ms = percentile(toLong(duration), 99) / 1000000
+          }, by: { model = llm.model }
+        | fieldsAdd error_rate_pct = round((toDouble(errors) / toDouble(requests)) * 100.0, decimals: 2)
+        | sort requests desc
+
+  suggestions_llm_economics:
+    action: dynatrace.automations:execute-dql-query
+    description: Suggestions per-model token usage and cost for the last 7 days. Pricing inlined at USD 0.10 / 1M input tokens and USD 0.40 / 1M output tokens.
+    name: suggestions_llm_economics
+    position: { x: 4, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "ChatNVIDIA.chat"
+        | filter isNotNull(gen_ai.usage.input_tokens)
+        | fieldsAdd join_key = span.parent_id
+        | join [
+            fetch spans, from: now()-7d
+            | filter dt.service.name == "nvidia-chatbot"
+            | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+            | fieldsAdd join_key = span.id
+          ], on: { join_key }, kind: leftOuter
+        | filter isNotNull(right.span.name) == true
+        | summarize {
+            calls = count(),
+            in_tokens = sum(gen_ai.usage.input_tokens),
+            out_tokens = sum(gen_ai.usage.output_tokens),
+            avg_in_tokens = round(avg(gen_ai.usage.input_tokens)),
+            avg_out_tokens = round(avg(gen_ai.usage.output_tokens))
+          }, by: { model = gen_ai.request.model }
+        | fieldsAdd cost_usd = round((toDouble(in_tokens) / 1000000.0) * 0.10 + (toDouble(out_tokens) / 1000000.0) * 0.40, decimals: 4)
+        | fieldsAdd cost_per_call_usd = round(cost_usd / toDouble(calls), decimals: 6)
+        | fieldsAdd cost_per_1k_out_usd = if(toDouble(out_tokens) > 0, round(cost_usd / (toDouble(out_tokens) / 1000.0), decimals: 6), else: 0.0)
+        | sort calls desc
+
+  suggestions_throughput:
+    action: dynatrace.automations:execute-dql-query
+    description: Suggestions per-model throughput — average output tokens per second for the last 7 days.
+    name: suggestions_throughput
+    position: { x: 6, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter span.name == "ChatNVIDIA.chat"
+        | filter isNotNull(gen_ai.usage.output_tokens)
+        | filter toLong(duration) > 0
+        | fieldsAdd join_key = span.parent_id
+        | join [
+            fetch spans, from: now()-7d
+            | filter dt.service.name == "nvidia-chatbot"
+            | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+            | fieldsAdd join_key = span.id
+          ], on: { join_key }, kind: leftOuter
+        | filter isNotNull(right.span.name) == true
+        | fieldsAdd tps = toDouble(gen_ai.usage.output_tokens) / (toDouble(duration) / 1000000000.0)
+        | summarize avg_tokens_per_sec = round(avg(tps), decimals: 1), by: { model = gen_ai.request.model }
+        | sort avg_tokens_per_sec desc
+
+  suggestions_slo_compliance:
+    action: dynatrace.automations:execute-dql-query
+    description: Suggestions per-model SLO compliance for the last 7 days — percentage of workflow requests completing under 1000 ms.
+    name: suggestions_slo_compliance
+    position: { x: 8, y: 1 }
+    predecessors: []
+    input:
+      query: |-
+        fetch spans, from: now()-7d
+        | filter dt.service.name == "nvidia-chatbot"
+        | filter in(span.name, {"chat_suggestions.task", "chat_starter_suggestions.task"})
+        | filter isNotNull(llm.model)
+        | fieldsAdd under_slo = if(toLong(duration) < 1000000000, 1, else: 0)
+        | summarize {
+            requests = count(),
+            under_slo = sum(under_slo)
+          }, by: { model = llm.model }
+        | fieldsAdd slo_pct = round((toDouble(under_slo) / toDouble(requests)) * 100.0, decimals: 1)
+        | fields model, requests, slo_pct
+        | sort slo_pct desc
+
+  # ─────────────────────────────────────────────────────────────
+  # Davis CoPilot synthesis
+  # ─────────────────────────────────────────────────────────────
+
+  report_prompt:
+    action: dynatrace.davis.copilot.workflow.actions:davis-copilot
+    description: Synthesize a model-distribution recommendation across cost, latency, throughput, and stability using all per-task metrics.
+    name: report_prompt
+    position: { x: 0, y: 3 }
+    predecessors:
+      - chat_workflow_scorecard
+      - chat_workflow_scorecard_prior
+      - chat_llm_economics
+      - chat_throughput
+      - chat_slo_compliance
+      - suggestions_workflow_scorecard
+      - suggestions_workflow_scorecard_prior
+      - suggestions_llm_economics
+      - suggestions_throughput
+      - suggestions_slo_compliance
+    conditions:
+      else: SKIP
+      states:
+        chat_workflow_scorecard: OK
+        chat_workflow_scorecard_prior: OK
+        chat_llm_economics: OK
+        chat_throughput: OK
+        chat_slo_compliance: OK
+        suggestions_workflow_scorecard: OK
+        suggestions_workflow_scorecard_prior: OK
+        suggestions_llm_economics: OK
+        suggestions_throughput: OK
+        suggestions_slo_compliance: OK
+    retry:
+      count: 2
+      delay: 30
+      failedLoopIterationsOnly: true
+    input:
+      autoTrim: true
+      config: disabled
+      instruction: |-
+        You are an SRE writing a concise weekly status note for a non-technical reader.
+        Style rules (strict):
+        - Whole report under 200 words.
+        - No tables, no scorecards, no raw data dumps. The reader will open Dynatrace for deep numbers.
+        - Plain English. Short sentences. Avoid jargon: say "slowest 5% of requests" not "p95", "meeting the speed target" not "SLO compliance", "occasional very slow responses" not "tail risk".
+        - It is fine to cite a model name and one or two grounding numbers (e.g. "about 20% cheaper", "saves roughly $4/week") sparingly.
+        - Skip any model with fewer than 50 requests this week — do not mention it. If a workload has no usable data, say so in one sentence.
+        Pricing assumed: $0.10 per 1M input tokens, $0.40 per 1M output tokens. Speed targets: chat under 3 seconds, suggestions under 1 second. Model routing is controlled by two DevCycle flags: `llm-model-chat` and `llm-model-suggestions`.
+      prompt: |-
+        Analyze the supplementary JSON data and produce a short weekly status note for the AI Chatbot service covering both the chat and suggestions workloads. Compare each model's cost, speed, and reliability, compare this week against the prior week, and recommend how to redistribute traffic between models.
+
+        Use exactly these four sections, in this order, with these markdown headers:
+
+        ## How things went this week
+        Two or three sentences on overall health. Was chat fast enough? Were suggestions fast enough? Anything broken? Avoid numbers unless one really matters.
+
+        ## What changed since last week
+        Two or three sentences. Did any model get noticeably faster, slower, more expensive, or more error-prone compared to the prior week? If nothing meaningful changed, write "Nothing major changed this week." and stop the section.
+
+        ## Recommendation
+        One short paragraph, 3 to 4 sentences. Recommend how to shift traffic between models for chat and for suggestions. Be specific about which model should get more or less traffic and explain why in plain words (cost, speed, or reliability). Mention the rough weekly dollar impact only if it is meaningful.
+
+        ## What to do
+        Two or three bullets describing the concrete change to make in the DevCycle flags `llm-model-chat` and `llm-model-suggestions`. Plain language, e.g. "Send 70% of chat traffic to model X and 30% to model Y."
+      supplementary: |-
+        {
+          "pricing_usd": { "per_1m_input": 0.10, "per_1m_output": 0.40 },
+          "slo_targets_ms": { "chat_p95": 3000, "suggestions_p95": 1000 },
+          "chat": {
+            "scorecard_7d": {{ result("chat_workflow_scorecard")["records"] }},
+            "scorecard_prior_7d": {{ result("chat_workflow_scorecard_prior")["records"] }},
+            "economics_7d": {{ result("chat_llm_economics")["records"] }},
+            "throughput_7d": {{ result("chat_throughput")["records"] }},
+            "slo_compliance_7d": {{ result("chat_slo_compliance")["records"] }}
+          },
+          "suggestions": {
+            "scorecard_7d": {{ result("suggestions_workflow_scorecard")["records"] }},
+            "scorecard_prior_7d": {{ result("suggestions_workflow_scorecard_prior")["records"] }},
+            "economics_7d": {{ result("suggestions_llm_economics")["records"] }},
+            "throughput_7d": {{ result("suggestions_throughput")["records"] }},
+            "slo_compliance_7d": {{ result("suggestions_slo_compliance")["records"] }}
+          }
+        }
+
+  # ─────────────────────────────────────────────────────────────
+  # Email delivery
+  # ─────────────────────────────────────────────────────────────
+
+  send_email:
+    action: dynatrace.email:send-email
+    description: Send the weekly model-optimization report email.
+    name: send_email
+    position: { x: 0, y: 4 }
+    predecessors:
+      - report_prompt
+    conditions:
+      states:
+        report_prompt: OK
+    input:
+      to:
+        - clyde.anderson@dynatrace.com
+      cc: []
+      bcc: []
+      subject: "AI Chatbot — Weekly Model Optimization Report"
+      content: |-
+        📊 **Quick Links:** [Simple Dashboard](https://tsy86276.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/f2960c3a-0bee-4b99-808d-a8420c6d4469) · [LLM Comparison (A/B)](https://tsy86276.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards) · [Backend Service](https://tsy86276.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.services/explorer/services?detailsId=SERVICE-7A4326FA5BAC72C3)
+
+        ---
+
+        {{ result("report_prompt")["text"] }}
