@@ -37,9 +37,9 @@ flowchart LR
     nginx --> backend
     backend -- "chat completions" --> nim
 
-    classDef client fill:#e3f2fd,stroke:#1976d2
-    classDef infra fill:#f3e5f5,stroke:#7b1fa2
-    classDef external fill:#fff3e0,stroke:#f57c00
+    classDef client fill:#e3f2fd,stroke:#1976d2,color:#0d1b2a
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,color:#0d1b2a
+    classDef external fill:#fff3e0,stroke:#f57c00,color:#0d1b2a
     class web,mobile,lg client
     class nginx,backend infra
     class nim external
@@ -93,10 +93,10 @@ flowchart LR
 
     gha -- "PATCH flag value<br/>(write: chaos preset)" --> flags
 
-    classDef client fill:#e3f2fd,stroke:#1976d2
-    classDef infra fill:#f3e5f5,stroke:#7b1fa2
-    classDef external fill:#fff3e0,stroke:#f57c00
-    classDef ci fill:#e8f5e9,stroke:#388e3c
+    classDef client fill:#e3f2fd,stroke:#1976d2,color:#0d1b2a
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,color:#0d1b2a
+    classDef external fill:#fff3e0,stroke:#f57c00,color:#0d1b2a
+    classDef ci fill:#e8f5e9,stroke:#388e3c,color:#0d1b2a
     class client client
     class backend infra
     class flags,nim external
@@ -138,10 +138,10 @@ flowchart LR
     lg -- "OTLP/HTTP" --> bp
     bp -- "OTLP" --> dttraces
 
-    classDef client fill:#e3f2fd,stroke:#1976d2
-    classDef infra fill:#f3e5f5,stroke:#7b1fa2
-    classDef external fill:#fff3e0,stroke:#f57c00
-    classDef pipeStyle fill:#fce4ec,stroke:#c2185b
+    classDef client fill:#e3f2fd,stroke:#1976d2,color:#0d1b2a
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,color:#0d1b2a
+    classDef external fill:#fff3e0,stroke:#f57c00,color:#0d1b2a
+    classDef pipeStyle fill:#fce4ec,stroke:#c2185b,color:#0d1b2a
     class web,mobile,lg client
     class backend infra
     class dttraces,dtrum external
@@ -156,6 +156,7 @@ End-to-end sequence for a single chat call, including flag evaluation
 and telemetry emission. This ties together the previous three diagrams.
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 sequenceDiagram
     autonumber
     participant C as Client<br/>(web / mobile / load-gen)
