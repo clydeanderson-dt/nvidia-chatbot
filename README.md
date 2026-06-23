@@ -23,6 +23,7 @@ development, environment variables, and Ubuntu VM deployment.
 ## Architecture and deep dives
 
 - **[docs/architecture.md](docs/architecture.md)** — system overview, request flow, design decisions
+- **[docs/diagrams.md](docs/diagrams.md)** — visual diagrams (components, feature flags, observability, request lifecycle)
 - **[docs/opentelemetry-instrumentation.md](docs/opentelemetry-instrumentation.md)** — telemetry deep dive
 - **[docs/devcycle-openfeature.md](docs/devcycle-openfeature.md)** — feature flags + chaos engineering
 
